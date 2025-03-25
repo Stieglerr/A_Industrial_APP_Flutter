@@ -5,14 +5,14 @@ import 'package:path/path.dart';
 import 'package:intl/intl.dart';
 
 class DatabaseHelper {
-  static final DatabaseHelper _instance = DatabaseHelper._internal();
+  static final DatabaseHelper instance = DatabaseHelper._internal();
   static Database? _database;
   static const String tableOrcamentos = 'orcamentos';
   static const String tableProdutos = 'produtos';
   static const String tableAnotacoes = 'anotacoes';
   static const int dbVersion = 4;
 
-  factory DatabaseHelper() => _instance;
+  factory DatabaseHelper() => instance;
 
   DatabaseHelper._internal() {
     if (Platform.isWindows || Platform.isLinux || Platform.isMacOS) {
@@ -44,15 +44,17 @@ class DatabaseHelper {
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         cliente TEXT NOT NULL,
         data TEXT NOT NULL,
-        valor_total REAL DEFAULT 0.0
+        valor_total REAL DEFAULT 0.0,
+        desconto REAL DEFAULT 0.0
       )''');
 
     await db.execute('''
       CREATE TABLE $tableProdutos (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         orcamento_id INTEGER NOT NULL,
-        descricao TEXT NOT NULL,
-        valor REAL NOT NULL,
+        nome TEXT NOT NULL,
+        preco REAL NOT NULL,
+        quantidade INTEGER DEFAULT 1,
         FOREIGN KEY(orcamento_id) 
           REFERENCES $tableOrcamentos(id) 
           ON DELETE CASCADE
@@ -77,8 +79,9 @@ class DatabaseHelper {
         CREATE TABLE $tableProdutos (
           id INTEGER PRIMARY KEY AUTOINCREMENT,
           orcamento_id INTEGER NOT NULL,
-          descricao TEXT NOT NULL,
-          valor REAL NOT NULL
+          nome TEXT NOT NULL,
+          preco REAL NOT NULL,
+          quantidade INTEGER DEFAULT 1
         )''');
     }
 
@@ -95,7 +98,7 @@ class DatabaseHelper {
       for (final orcamento in orcamentos) {
         final total = await db.rawQuery(
           '''
-          SELECT SUM(valor) as total 
+          SELECT SUM(preco * quantidade) as total 
           FROM $tableProdutos 
           WHERE orcamento_id = ?
         ''',
@@ -119,6 +122,25 @@ class DatabaseHelper {
           conteudo TEXT NOT NULL,
           data TEXT NOT NULL
         )''');
+
+      await db.execute('''
+        ALTER TABLE $tableOrcamentos 
+        ADD COLUMN desconto REAL DEFAULT 0.0
+      ''');
+
+      try {
+        await db.execute(
+          'ALTER TABLE $tableProdutos RENAME COLUMN descricao TO nome',
+        );
+        await db.execute(
+          'ALTER TABLE $tableProdutos RENAME COLUMN valor TO preco',
+        );
+        await db.execute(
+          'ALTER TABLE $tableProdutos ADD COLUMN quantidade INTEGER DEFAULT 1',
+        );
+      } catch (e) {
+        print('Erro ao modificar tableProdutos: $e');
+      }
     }
   }
 
@@ -133,14 +155,16 @@ class DatabaseHelper {
         'cliente': orcamento['cliente'].toString().trim(),
         'data': data,
         'valor_total': orcamento['valor_total'],
+        'desconto': orcamento['desconto'] ?? 0.0,
       });
 
       final batch = txn.batch();
       for (final produto in orcamento['produtos']) {
         batch.insert(tableProdutos, {
           'orcamento_id': orcamentoId,
-          'descricao': produto['descricao'].toString().trim(),
-          'valor': produto['valor'],
+          'nome': produto['nome'].toString().trim(),
+          'preco': double.tryParse(produto['preco'].toString()) ?? 0.0,
+          'quantidade': produto['quantidade'] ?? 1,
         });
       }
       await batch.commit();
@@ -167,6 +191,32 @@ class DatabaseHelper {
     }
 
     return orcamentos;
+  }
+
+  Future<Map<String, dynamic>?> getOrcamentoById(int id) async {
+    final db = await database;
+
+    final List<Map<String, dynamic>> orcamentos = await db.query(
+      tableOrcamentos,
+      where: 'id = ?',
+      whereArgs: [id],
+    );
+
+    if (orcamentos.isEmpty) {
+      return null;
+    }
+
+    Map<String, dynamic> orcamento = orcamentos.first;
+
+    List<Map<String, dynamic>> produtos = await db.query(
+      tableProdutos,
+      where: 'orcamento_id = ?',
+      whereArgs: [id],
+    );
+
+    orcamento = {...orcamento, 'produtos': produtos};
+
+    return orcamento;
   }
 
   Future<void> deleteOrcamento(int id) async {
@@ -216,5 +266,43 @@ class DatabaseHelper {
       where: 'id = ?',
       whereArgs: [anotacao['id']],
     );
+  }
+
+  Future<int> updateOrcamento(Map<String, dynamic> orcamento) async {
+    final db = await database;
+
+    return await db.transaction<int>((txn) async {
+      final id = orcamento['id'];
+
+      final result = await txn.update(
+        tableOrcamentos,
+        {
+          'cliente': orcamento['cliente'].toString().trim(),
+          'valor_total': orcamento['valor_total'],
+          'desconto': orcamento['desconto'] ?? 0.0,
+        },
+        where: 'id = ?',
+        whereArgs: [id],
+      );
+
+      await txn.delete(
+        tableProdutos,
+        where: 'orcamento_id = ?',
+        whereArgs: [id],
+      );
+
+      final batch = txn.batch();
+      for (final produto in orcamento['produtos']) {
+        batch.insert(tableProdutos, {
+          'orcamento_id': id,
+          'nome': produto['nome'].toString().trim(),
+          'preco': double.tryParse(produto['preco'].toString()) ?? 0.0,
+          'quantidade': produto['quantidade'] ?? 1,
+        });
+      }
+      await batch.commit();
+
+      return result;
+    });
   }
 }

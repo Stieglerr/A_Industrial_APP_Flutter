@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'database_helper.dart' as db;
 import 'novo_anotacoes.dart';
+import 'editar_anotacao.dart'; // New import
 
 class Anotacoes extends StatefulWidget {
   const Anotacoes({Key? key}) : super(key: key);
@@ -63,6 +64,19 @@ class _AnotacoesState extends State<Anotacoes> {
     }
   }
 
+  Future<void> _editarAnotacao(Map<String, dynamic> anotacao) async {
+    final result = await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => EditarAnotacaoScreen(anotacao: anotacao),
+      ),
+    );
+
+    if (result == true) {
+      await _carregarAnotacoes();
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -118,10 +132,21 @@ class _AnotacoesState extends State<Anotacoes> {
                       'Data: ${_formatarData(anotacao['data'])}',
                       style: const TextStyle(fontSize: 14),
                     ),
-                    trailing: IconButton(
-                      icon: const Icon(Icons.delete, color: Colors.red),
-                      onPressed: () async => _excluirAnotacao(anotacao['id']),
-                      tooltip: 'Excluir anotação',
+                    trailing: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        IconButton(
+                          icon: const Icon(Icons.edit, color: Colors.blue),
+                          onPressed: () => _editarAnotacao(anotacao),
+                          tooltip: 'Editar anotação',
+                        ),
+                        IconButton(
+                          icon: const Icon(Icons.delete, color: Colors.red),
+                          onPressed:
+                              () async => _excluirAnotacao(anotacao['id']),
+                          tooltip: 'Excluir anotação',
+                        ),
+                      ],
                     ),
                     children: [
                       Padding(

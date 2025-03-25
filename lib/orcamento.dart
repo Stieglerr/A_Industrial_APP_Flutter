@@ -2,6 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'database_helper.dart';
 import 'novo_orcamento.dart';
+import 'editar_orcamento.dart';
+import 'dart:io';
+import 'package:pdf/pdf.dart';
+import 'package:pdf/widgets.dart' as pw;
+import 'package:path_provider/path_provider.dart';
+import 'package:open_file/open_file.dart';
+import 'package:share_plus/share_plus.dart';
 
 class Orcamento extends StatefulWidget {
   @override
@@ -25,19 +32,21 @@ class _OrcamentoState extends State<Orcamento> {
   }
 
   Future<void> _excluirOrcamento(int id) async {
-    final confirmar = await showDialog<bool>(
+    final confirmacao = await showDialog<bool>(
       context: context,
       builder:
           (context) => AlertDialog(
-            title: const Text('Confirmar exclusão'),
-            content: const Text('Deseja realmente excluir este orçamento?'),
+            title: const Text('Confirmar Exclusão'),
+            content: const Text(
+              'Tem certeza que deseja excluir este orçamento?',
+            ),
             actions: [
               TextButton(
-                onPressed: () => Navigator.pop(context, false),
+                onPressed: () => Navigator.of(context).pop(false),
                 child: const Text('Cancelar'),
               ),
               TextButton(
-                onPressed: () => Navigator.pop(context, true),
+                onPressed: () => Navigator.of(context).pop(true),
                 child: const Text(
                   'Excluir',
                   style: TextStyle(color: Colors.red),
@@ -47,10 +56,114 @@ class _OrcamentoState extends State<Orcamento> {
           ),
     );
 
-    if (confirmar == true) {
-      await _dbHelper.deleteOrcamento(id);
-      await _carregarOrcamentos();
+    // Executar exclusão se confirmado
+    if (confirmacao == true) {
+      try {
+        await _dbHelper.deleteOrcamento(id);
+        await _carregarOrcamentos();
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Orçamento excluído com sucesso'),
+            backgroundColor: Colors.green,
+          ),
+        );
+      } catch (e) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Erro ao excluir orçamento: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
     }
+  }
+
+  Future<void> _gerarPDF(Map<String, dynamic> orcamento) async {
+    final pdf = pw.Document();
+    final produtos = orcamento['produtos'] as List<Map<String, dynamic>>;
+
+    pdf.addPage(
+      pw.MultiPage(
+        pageFormat: PdfPageFormat.a4,
+        build:
+            (pw.Context context) => [
+              pw.Header(
+                level: 0,
+                child: pw.Text(
+                  'Orçamento para ${orcamento['cliente']}',
+                  style: pw.TextStyle(
+                    fontSize: 24,
+                    fontWeight: pw.FontWeight.bold,
+                  ),
+                ),
+              ),
+              pw.Paragraph(
+                text:
+                    'Data: ${DateFormat('dd/MM/yyyy HH:mm').format(DateTime.parse(orcamento['data']))}',
+              ),
+              pw.Table.fromTextArray(
+                context: context,
+                headers: [
+                  'Descrição',
+                  'Quantidade',
+                  'Valor Unitário',
+                  'Valor Total',
+                ],
+                data:
+                    produtos.map((produto) {
+                      final double precoUnitario = produto['preco'] ?? 0.0;
+                      final int quantidade = produto['quantidade'] ?? 1;
+                      final double precoTotal = precoUnitario * quantidade;
+
+                      return [
+                        produto['nome'],
+                        quantidade.toString(),
+                        NumberFormat.currency(
+                          locale: 'pt_BR',
+                          symbol: 'R\$',
+                        ).format(precoUnitario),
+                        NumberFormat.currency(
+                          locale: 'pt_BR',
+                          symbol: 'R\$',
+                        ).format(precoTotal),
+                      ];
+                    }).toList(),
+              ),
+              pw.Divider(),
+              pw.Row(
+                mainAxisAlignment: pw.MainAxisAlignment.end,
+                children: [
+                  pw.Column(
+                    crossAxisAlignment: pw.CrossAxisAlignment.end,
+                    children: [
+                      if (orcamento['desconto'] != null &&
+                          orcamento['desconto'] > 0)
+                        pw.Text(
+                          'Subtotal: ${NumberFormat.currency(locale: 'pt_BR', symbol: 'R\$').format(orcamento['valor_total'] + orcamento['desconto'])}',
+                        ),
+                      if (orcamento['desconto'] != null &&
+                          orcamento['desconto'] > 0)
+                        pw.Text(
+                          'Desconto: ${NumberFormat.currency(locale: 'pt_BR', symbol: 'R\$').format(orcamento['desconto'])}',
+                        ),
+                      pw.Text(
+                        'Total: ${NumberFormat.currency(locale: 'pt_BR', symbol: 'R\$').format(orcamento['valor_total'])}',
+                        style: pw.TextStyle(fontWeight: pw.FontWeight.bold),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ],
+      ),
+    );
+
+    final output = await getTemporaryDirectory();
+    final file = File('${output.path}/orcamento_${orcamento['id']}.pdf');
+    await file.writeAsBytes(await pdf.save());
+
+    await OpenFile.open(file.path);
+    await Share.shareXFiles([XFile(file.path)]);
   }
 
   @override
@@ -134,6 +247,35 @@ class _OrcamentoState extends State<Orcamento> {
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         IconButton(
+                          icon: const Icon(Icons.edit, color: Colors.blue),
+                          onPressed: () async {
+                            final result = await Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder:
+                                    (context) => EditarOrcamentoScreen(
+                                      orcamentoId: orcamento['id'],
+                                    ),
+                              ),
+                            );
+
+                            if (result == true) {
+                              await _carregarOrcamentos();
+                            }
+                          },
+                          tooltip: 'Editar orçamento',
+                        ),
+                        IconButton(
+                          icon: const Icon(
+                            Icons.picture_as_pdf,
+                            color: Colors.purple,
+                          ),
+                          onPressed: () async {
+                            await _gerarPDF(orcamento);
+                          },
+                          tooltip: 'Gerar PDF',
+                        ),
+                        IconButton(
                           icon: const Icon(Icons.delete, color: Colors.red),
                           onPressed: () async {
                             await _excluirOrcamento(orcamento['id']);
@@ -172,6 +314,17 @@ class _OrcamentoState extends State<Orcamento> {
                                 Expanded(
                                   flex: 1,
                                   child: Text(
+                                    'Qtde',
+                                    textAlign: TextAlign.center,
+                                    style: TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      color: Colors.grey[600],
+                                    ),
+                                  ),
+                                ),
+                                Expanded(
+                                  flex: 2,
+                                  child: Text(
                                     'Valor',
                                     textAlign: TextAlign.end,
                                     style: TextStyle(
@@ -184,6 +337,12 @@ class _OrcamentoState extends State<Orcamento> {
                             ),
                             const Divider(height: 10),
                             ...produtos.map((produto) {
+                              final double precoUnitario =
+                                  produto['preco'] ?? 0.0;
+                              final int quantidade = produto['quantidade'] ?? 1;
+                              final double precoTotal =
+                                  precoUnitario * quantidade;
+
                               return Padding(
                                 padding: const EdgeInsets.symmetric(
                                   vertical: 4.0,
@@ -192,15 +351,22 @@ class _OrcamentoState extends State<Orcamento> {
                                   children: [
                                     Expanded(
                                       flex: 3,
-                                      child: Text(produto['descricao']),
+                                      child: Text(produto['nome']),
                                     ),
                                     Expanded(
                                       flex: 1,
                                       child: Text(
+                                        quantidade.toString(),
+                                        textAlign: TextAlign.center,
+                                      ),
+                                    ),
+                                    Expanded(
+                                      flex: 2,
+                                      child: Text(
                                         NumberFormat.currency(
                                           locale: 'pt_BR',
                                           symbol: 'R\$',
-                                        ).format(produto['valor']),
+                                        ).format(precoTotal),
                                         textAlign: TextAlign.end,
                                         style: TextStyle(
                                           color: Colors.purple[700],
@@ -216,13 +382,28 @@ class _OrcamentoState extends State<Orcamento> {
                             Row(
                               mainAxisAlignment: MainAxisAlignment.end,
                               children: [
-                                Text(
-                                  'Total: ${NumberFormat.currency(locale: 'pt_BR', symbol: 'R\$').format(orcamento['valor_total'])}',
-                                  style: TextStyle(
-                                    fontWeight: FontWeight.bold,
-                                    fontSize: 16,
-                                    color: Colors.purple[800],
-                                  ),
+                                Column(
+                                  crossAxisAlignment: CrossAxisAlignment.end,
+                                  children: [
+                                    if (orcamento['desconto'] != null &&
+                                        orcamento['desconto'] > 0) ...[
+                                      Text(
+                                        'Subtotal: ${NumberFormat.currency(locale: 'pt_BR', symbol: 'R\$').format(orcamento['valor_total'] + orcamento['desconto'])}',
+                                      ),
+                                      Text(
+                                        'Desconto: ${NumberFormat.currency(locale: 'pt_BR', symbol: 'R\$').format(orcamento['desconto'])}',
+                                      ),
+                                      const SizedBox(height: 4),
+                                    ],
+                                    Text(
+                                      'Total: ${NumberFormat.currency(locale: 'pt_BR', symbol: 'R\$').format(orcamento['valor_total'])}',
+                                      style: TextStyle(
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 16,
+                                        color: Colors.purple[800],
+                                      ),
+                                    ),
+                                  ],
                                 ),
                               ],
                             ),
