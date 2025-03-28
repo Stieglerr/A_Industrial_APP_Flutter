@@ -19,6 +19,10 @@ dependencies:
   pdf: ^3.10.7
   open_file: ^3.3.2
   share_plus: ^7.2.2
+  vibration: ^2.0.0
+  shared_preferences: ^2.2.2
+
+
 
 
 dev_dependencies:
@@ -27,4 +31,8 @@ dev_dependencies:
   flutter_lints: ^5.0.0
 
 flutter:
+  assets:
+    - assets/images/logo.png
+    - assets/images/logointbranco.png
+    - assets/images/logointpreto.png
   uses-material-design: true

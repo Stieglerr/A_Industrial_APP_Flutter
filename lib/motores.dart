@@ -4,23 +4,25 @@ import 'calculadora_a_motor.dart';
 import 'calculadora_contactora.dart';
 
 class Motores extends StatelessWidget {
+  final Color corChumbo = const Color.fromARGB(255, 55, 52, 53);
+
+  const Motores({super.key});
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text(
-          'Motores',
-          style: TextStyle(
-            color: Colors.white,
-            fontSize: 24,
-            fontWeight: FontWeight.bold,
-          ),
+        title: Image.asset(
+          'assets/images/logointpreto.png',
+          height: 40,
+          fit: BoxFit.contain,
         ),
         centerTitle: true,
-        backgroundColor: Colors.blueGrey[800],
-      ),
+        backgroundColor: corChumbo,
+        iconTheme: IconThemeData(color: Colors.white),
+      ), // Botão voltar branco
       body: Container(
-        padding: EdgeInsets.all(20),
+        padding: const EdgeInsets.all(20),
         decoration: BoxDecoration(
           gradient: LinearGradient(
             begin: Alignment.topCenter,
@@ -71,7 +73,7 @@ class Motores extends StatelessWidget {
   ) {
     return Container(
       width: double.infinity,
-      margin: EdgeInsets.symmetric(vertical: 10),
+      margin: const EdgeInsets.symmetric(vertical: 10),
       child: ElevatedButton(
         onPressed: () {
           Navigator.push(
@@ -81,13 +83,13 @@ class Motores extends StatelessWidget {
         },
         style: ElevatedButton.styleFrom(
           backgroundColor: color,
-          padding: EdgeInsets.symmetric(vertical: 20, horizontal: 30),
+          padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 30),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(15),
           ),
           elevation: 5,
           shadowColor: color.withOpacity(0.3),
-          textStyle: TextStyle(
+          textStyle: const TextStyle(
             fontSize: 18,
             fontWeight: FontWeight.w600,
             color: Colors.white,
@@ -97,10 +99,10 @@ class Motores extends StatelessWidget {
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Icon(icon, size: 28, color: Colors.white),
-            SizedBox(width: 15),
+            const SizedBox(width: 15),
             Text(
               text,
-              style: TextStyle(
+              style: const TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.w600,
                 color: Colors.white,

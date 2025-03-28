@@ -4,8 +4,7 @@ import 'database_helper.dart';
 class EditarOrcamentoScreen extends StatefulWidget {
   final int orcamentoId;
 
-  const EditarOrcamentoScreen({Key? key, required this.orcamentoId})
-    : super(key: key);
+  const EditarOrcamentoScreen({required this.orcamentoId});
 
   @override
   _EditarOrcamentoScreenState createState() => _EditarOrcamentoScreenState();
@@ -63,7 +62,7 @@ class _EditarOrcamentoScreenState extends State<EditarOrcamentoScreen> {
   void _calcularValorTotal() {
     double total = 0.0;
     for (var produto in _produtos) {
-      total += produto['preco'] * produto['quantidade'];
+      total += (produto['preco'] ?? 0) * (produto['quantidade'] ?? 1);
     }
     double desconto = double.tryParse(_descontoController.text) ?? 0;
     setState(() {
@@ -194,19 +193,16 @@ class _EditarOrcamentoScreenState extends State<EditarOrcamentoScreen> {
                       onChanged: (value) => _calcularValorTotal(),
                     ),
                     const SizedBox(height: 20),
-
                     ElevatedButton.icon(
                       onPressed: _mostrarDialogoAdicionarProduto,
                       icon: const Icon(Icons.add),
                       label: const Text('Adicionar Produto'),
                     ),
-
                     const SizedBox(height: 10),
                     Text(
                       'Produtos (${_produtos.length})',
                       style: Theme.of(context).textTheme.titleMedium,
                     ),
-
                     Expanded(
                       child:
                           _produtos.isEmpty
@@ -223,7 +219,6 @@ class _EditarOrcamentoScreenState extends State<EditarOrcamentoScreen> {
                                 },
                               ),
                     ),
-
                     const SizedBox(height: 20),
                     Text(
                       'Total: R\$ ${_valorTotal.toStringAsFixed(2)}',
@@ -248,17 +243,16 @@ class _ProdutoItem extends StatelessWidget {
   final Map<String, dynamic> produto;
   final VoidCallback onRemove;
 
-  const _ProdutoItem({Key? key, required this.produto, required this.onRemove})
-    : super(key: key);
+  const _ProdutoItem({required this.produto, required this.onRemove});
 
   @override
   Widget build(BuildContext context) {
     return Card(
       margin: const EdgeInsets.symmetric(vertical: 8),
       child: ListTile(
-        title: Text(produto['nome']),
+        title: Text(produto['nome'] ?? 'Produto sem nome'),
         subtitle: Text(
-          'Quantidade: ${produto['quantidade']} - Preço: R\$ ${produto['preco']}',
+          'Quantidade: ${produto['quantidade'] ?? 1} - Preço: R\$ ${produto['preco'] ?? 0}',
         ),
         trailing: IconButton(
           icon: const Icon(Icons.delete, color: Colors.red),

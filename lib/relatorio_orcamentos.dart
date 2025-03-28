@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'database_helper.dart';
 
 class RelatorioScreen extends StatefulWidget {
+  const RelatorioScreen({super.key});
+
   @override
   _RelatorioScreenState createState() => _RelatorioScreenState();
 }

@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 
 class ConverterWVA extends StatefulWidget {
+  const ConverterWVA({super.key});
+
   @override
   _ConverterWVAState createState() => _ConverterWVAState();
 }

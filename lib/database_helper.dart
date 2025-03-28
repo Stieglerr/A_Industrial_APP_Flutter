@@ -1,5 +1,5 @@
 import 'dart:io';
-import 'package:sqflite/sqflite.dart';
+import 'dart:convert';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 import 'package:path/path.dart';
 import 'package:intl/intl.dart';
@@ -10,7 +10,7 @@ class DatabaseHelper {
   static const String tableOrcamentos = 'orcamentos';
   static const String tableProdutos = 'produtos';
   static const String tableAnotacoes = 'anotacoes';
-  static const int dbVersion = 4;
+  static const int dbVersion = 5;
 
   factory DatabaseHelper() => instance;
 
@@ -45,7 +45,8 @@ class DatabaseHelper {
         cliente TEXT NOT NULL,
         data TEXT NOT NULL,
         valor_total REAL DEFAULT 0.0,
-        desconto REAL DEFAULT 0.0
+        desconto REAL DEFAULT 0.0,
+        produtos_json TEXT
       )''');
 
     await db.execute('''
@@ -142,6 +143,13 @@ class DatabaseHelper {
         print('Erro ao modificar tableProdutos: $e');
       }
     }
+
+    if (oldVersion < 5) {
+      await db.execute('''
+        ALTER TABLE $tableOrcamentos 
+        ADD COLUMN produtos_json TEXT
+      ''');
+    }
   }
 
   Future<int> insertOrcamento(Map<String, dynamic> orcamento) async {
@@ -150,21 +158,26 @@ class DatabaseHelper {
       'yyyy-MM-dd HH:mm:ss',
     ).format(DateTime.now());
 
+    final produtosJson = jsonDecode(orcamento['produtos']?.toString() ?? '[]');
+
     return await db.transaction<int>((txn) async {
       final orcamentoId = await txn.insert(tableOrcamentos, {
-        'cliente': orcamento['cliente'].toString().trim(),
+        'cliente':
+            orcamento['cliente']?.toString().trim() ?? 'Cliente não informado',
         'data': data,
-        'valor_total': orcamento['valor_total'],
-        'desconto': orcamento['desconto'] ?? 0.0,
+        'valor_total': (orcamento['valor_total'] as num?)?.toDouble() ?? 0.0,
+        'desconto': (orcamento['desconto'] as num?)?.toDouble() ?? 0.0,
+        'produtos_json': orcamento['produtos']?.toString() ?? '[]',
       });
 
       final batch = txn.batch();
-      for (final produto in orcamento['produtos']) {
+      for (final produto in produtosJson) {
         batch.insert(tableProdutos, {
           'orcamento_id': orcamentoId,
-          'nome': produto['nome'].toString().trim(),
-          'preco': double.tryParse(produto['preco'].toString()) ?? 0.0,
-          'quantidade': produto['quantidade'] ?? 1,
+          'nome': produto['descricao']?.toString().trim() ?? 'Produto sem nome',
+          'preco':
+              (double.tryParse(produto['valor']?.toString() ?? '0.0') ?? 0.0),
+          'quantidade': (produto['quantidade'] as num?)?.toInt() ?? 1,
         });
       }
       await batch.commit();
@@ -180,14 +193,19 @@ class DatabaseHelper {
     );
 
     for (int i = 0; i < orcamentos.length; i++) {
-      List<Map<String, dynamic>> produtos = List.from(
-        await db.query(
-          tableProdutos,
-          where: 'orcamento_id = ?',
-          whereArgs: [orcamentos[i]['id']],
-        ),
-      );
-      orcamentos[i] = {...orcamentos[i], 'produtos': produtos};
+      try {
+        final produtosJson = orcamentos[i]['produtos_json']?.toString() ?? '[]';
+        orcamentos[i] = {
+          ...orcamentos[i],
+          'produtos': jsonDecode(produtosJson),
+          'cliente':
+              orcamentos[i]['cliente']?.toString() ?? 'Cliente não informado',
+          'data':
+              orcamentos[i]['data']?.toString() ?? DateTime.now().toString(),
+        };
+      } catch (e) {
+        orcamentos[i]['produtos'] = [];
+      }
     }
 
     return orcamentos;
@@ -195,26 +213,26 @@ class DatabaseHelper {
 
   Future<Map<String, dynamic>?> getOrcamentoById(int id) async {
     final db = await database;
-
     final List<Map<String, dynamic>> orcamentos = await db.query(
       tableOrcamentos,
       where: 'id = ?',
       whereArgs: [id],
     );
 
-    if (orcamentos.isEmpty) {
-      return null;
-    }
+    if (orcamentos.isEmpty) return null;
 
     Map<String, dynamic> orcamento = orcamentos.first;
 
-    List<Map<String, dynamic>> produtos = await db.query(
-      tableProdutos,
-      where: 'orcamento_id = ?',
-      whereArgs: [id],
-    );
-
-    orcamento = {...orcamento, 'produtos': produtos};
+    if (orcamento['produtos_json'] != null) {
+      try {
+        List<dynamic> produtosJson = jsonDecode(
+          orcamento['produtos_json'].toString(),
+        );
+        orcamento = {...orcamento, 'produtos': produtosJson};
+      } catch (e) {
+        orcamento['produtos'] = [];
+      }
+    }
 
     return orcamento;
   }
@@ -239,8 +257,8 @@ class DatabaseHelper {
     ).format(DateTime.now());
 
     return await db.insert(tableAnotacoes, {
-      'titulo': anotacao['titulo'].toString().trim(),
-      'conteudo': anotacao['conteudo'].toString().trim(),
+      'titulo': anotacao['titulo']?.toString().trim() ?? 'Sem título',
+      'conteudo': anotacao['conteudo']?.toString().trim() ?? '',
       'data': data,
     });
   }
@@ -260,8 +278,8 @@ class DatabaseHelper {
     return await db.update(
       tableAnotacoes,
       {
-        'titulo': anotacao['titulo'].toString().trim(),
-        'conteudo': anotacao['conteudo'].toString().trim(),
+        'titulo': anotacao['titulo']?.toString().trim() ?? 'Sem título',
+        'conteudo': anotacao['conteudo']?.toString().trim() ?? '',
       },
       where: 'id = ?',
       whereArgs: [anotacao['id']],
@@ -272,14 +290,17 @@ class DatabaseHelper {
     final db = await database;
 
     return await db.transaction<int>((txn) async {
-      final id = orcamento['id'];
+      final id = orcamento['id'] as int;
 
       final result = await txn.update(
         tableOrcamentos,
         {
-          'cliente': orcamento['cliente'].toString().trim(),
-          'valor_total': orcamento['valor_total'],
-          'desconto': orcamento['desconto'] ?? 0.0,
+          'cliente':
+              orcamento['cliente']?.toString().trim() ??
+              'Cliente não informado',
+          'valor_total': (orcamento['valor_total'] as num?)?.toDouble() ?? 0.0,
+          'desconto': (orcamento['desconto'] as num?)?.toDouble() ?? 0.0,
+          'produtos_json': jsonEncode(orcamento['produtos'] ?? []),
         },
         where: 'id = ?',
         whereArgs: [id],
@@ -292,12 +313,13 @@ class DatabaseHelper {
       );
 
       final batch = txn.batch();
-      for (final produto in orcamento['produtos']) {
+      for (final produto in (orcamento['produtos'] as List<dynamic>? ?? [])) {
         batch.insert(tableProdutos, {
           'orcamento_id': id,
-          'nome': produto['nome'].toString().trim(),
-          'preco': double.tryParse(produto['preco'].toString()) ?? 0.0,
-          'quantidade': produto['quantidade'] ?? 1,
+          'nome': produto['descricao']?.toString().trim() ?? 'Produto sem nome',
+          'preco':
+              (double.tryParse(produto['valor']?.toString() ?? '0.0') ?? 0.0),
+          'quantidade': (produto['quantidade'] as num?)?.toInt() ?? 1,
         });
       }
       await batch.commit();

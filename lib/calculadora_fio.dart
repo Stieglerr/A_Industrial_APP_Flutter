@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 
 class CalculadoraFio extends StatefulWidget {
+  const CalculadoraFio({super.key});
+
   @override
   _CalculadoraFioState createState() => _CalculadoraFioState();
 }

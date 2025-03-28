@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'dart:convert';
 import 'database_helper.dart';
 
 class NovoOrcamentoScreen extends StatefulWidget {
@@ -10,6 +11,7 @@ class NovoOrcamentoScreen extends StatefulWidget {
 }
 
 class _NovoOrcamentoScreenState extends State<NovoOrcamentoScreen> {
+  final Color corChumbo = const Color.fromARGB(255, 55, 52, 53);
   final _formKey = GlobalKey<FormState>();
   final TextEditingController _clienteController = TextEditingController();
   final List<Map<String, TextEditingController>> _produtos = [];
@@ -25,7 +27,7 @@ class _NovoOrcamentoScreenState extends State<NovoOrcamentoScreen> {
 
   void _adicionarProduto() {
     setState(() {
-      _produtos.add({
+      _produtos.add(<String, TextEditingController>{
         'descricao': TextEditingController(),
         'valor': TextEditingController(),
       });
@@ -58,9 +60,9 @@ class _NovoOrcamentoScreenState extends State<NovoOrcamentoScreen> {
       setState(() => _isLoading = true);
 
       try {
-        final produtos =
+        final List<Map<String, dynamic>> produtos =
             _produtos.map((produto) {
-              return {
+              return <String, dynamic>{
                 'descricao': produto['descricao']!.text.trim(),
                 'valor': double.parse(
                   produto['valor']!.text.replaceAll(RegExp(r','), '.'),
@@ -70,7 +72,7 @@ class _NovoOrcamentoScreenState extends State<NovoOrcamentoScreen> {
 
         await _dbHelper.insertOrcamento({
           'cliente': _clienteController.text.trim(),
-          'produtos': produtos,
+          'produtos': jsonEncode(produtos),
           'valor_total': _valorTotal,
         });
 
@@ -96,8 +98,16 @@ class _NovoOrcamentoScreenState extends State<NovoOrcamentoScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Novo Orçamento'),
-        backgroundColor: Colors.purple,
+        title: Center(
+          child: Image.asset(
+            'assets/images/logointpreto.png',
+            height: 40,
+            fit: BoxFit.contain,
+          ),
+        ),
+        centerTitle: true,
+        backgroundColor: corChumbo,
+        iconTheme: const IconThemeData(color: Colors.white),
       ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
@@ -112,7 +122,9 @@ class _NovoOrcamentoScreenState extends State<NovoOrcamentoScreen> {
                     labelText: 'Cliente',
                     border: OutlineInputBorder(),
                     hintText: 'Nome do cliente',
+                    labelStyle: TextStyle(color: Colors.black),
                   ),
+                  style: const TextStyle(color: Colors.black),
                   validator:
                       (value) => value!.isEmpty ? 'Informe o cliente' : null,
                 ),
@@ -128,14 +140,18 @@ class _NovoOrcamentoScreenState extends State<NovoOrcamentoScreen> {
                     onChanged: _calcularTotal,
                     mostrarBotaoRemover: _produtos.length > 1,
                   );
-                }).toList(),
+                }),
                 const SizedBox(height: 10),
                 ElevatedButton.icon(
                   onPressed: _adicionarProduto,
-                  icon: const Icon(Icons.add),
-                  label: const Text('Adicionar Produto'),
+                  icon: const Icon(Icons.add, color: Colors.black),
+                  label: const Text(
+                    'Adicionar Produto',
+                    style: TextStyle(color: Colors.black),
+                  ),
                   style: ElevatedButton.styleFrom(
                     minimumSize: const Size(double.infinity, 50),
+                    backgroundColor: Colors.grey[300],
                   ),
                 ),
                 const SizedBox(height: 20),
@@ -152,7 +168,7 @@ class _NovoOrcamentoScreenState extends State<NovoOrcamentoScreen> {
 
   Widget _buildTotalCard() {
     return Card(
-      color: Colors.purple.shade50,
+      color: Colors.grey[100],
       child: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Row(
@@ -160,7 +176,11 @@ class _NovoOrcamentoScreenState extends State<NovoOrcamentoScreen> {
           children: [
             const Text(
               'Valor Total:',
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+                color: Colors.black,
+              ),
             ),
             Text(
               NumberFormat.currency(
@@ -171,7 +191,7 @@ class _NovoOrcamentoScreenState extends State<NovoOrcamentoScreen> {
               style: const TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.bold,
-                color: Colors.purple,
+                color: Colors.black,
               ),
             ),
           ],
@@ -185,12 +205,17 @@ class _NovoOrcamentoScreenState extends State<NovoOrcamentoScreen> {
       onPressed: _isLoading ? null : _salvarOrcamento,
       style: ElevatedButton.styleFrom(
         minimumSize: const Size(double.infinity, 50),
-        textStyle: const TextStyle(fontSize: 18),
+        textStyle: const TextStyle(fontSize: 18, color: Colors.black),
+        backgroundColor: Colors.grey[300],
+        foregroundColor: Colors.black,
       ),
       child:
           _isLoading
-              ? const CircularProgressIndicator(color: Colors.white)
-              : const Text('Salvar Orçamento'),
+              ? const CircularProgressIndicator(color: Colors.black)
+              : const Text(
+                'Salvar Orçamento',
+                style: TextStyle(color: Colors.black),
+              ),
     );
   }
 }
@@ -239,7 +264,9 @@ class __ProdutoItemState extends State<_ProdutoItem> {
                   labelText: 'Descrição',
                   border: OutlineInputBorder(),
                   hintText: 'Ex: Instalação de luminária',
+                  labelStyle: TextStyle(color: Colors.black),
                 ),
+                style: const TextStyle(color: Colors.black),
                 textInputAction: TextInputAction.next,
                 validator:
                     (value) => value!.isEmpty ? 'Campo obrigatório' : null,
@@ -257,7 +284,11 @@ class __ProdutoItemState extends State<_ProdutoItem> {
                   border: OutlineInputBorder(),
                   prefixText: 'R\$ ',
                   hintText: '0,00',
+                  labelStyle: TextStyle(color: Colors.black),
+                  prefixStyle: TextStyle(color: Colors.black),
+                  hintStyle: TextStyle(color: Colors.grey),
                 ),
+                style: const TextStyle(color: Colors.black),
                 keyboardType: TextInputType.numberWithOptions(decimal: true),
                 textInputAction: TextInputAction.next,
                 validator: (value) {

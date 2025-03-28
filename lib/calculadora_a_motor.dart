@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:math';
 
 class CalculadoraAMotor extends StatefulWidget {
+  const CalculadoraAMotor({super.key});
+
   @override
   _CalculadoraAMotorState createState() => _CalculadoraAMotorState();
 }
@@ -11,13 +14,36 @@ class _CalculadoraAMotorState extends State<CalculadoraAMotor> {
   String _tipoMotor = 'monofasico';
   final TextEditingController _cvController = TextEditingController();
   final TextEditingController _tensaoController = TextEditingController();
-  final TextEditingController _fpController = TextEditingController(
-    text: '0.85',
-  );
-  final TextEditingController _rendimentoController = TextEditingController(
-    text: '0.88',
-  );
+  final TextEditingController _fpController = TextEditingController();
+  final TextEditingController _rendimentoController = TextEditingController();
   String _resultado = '';
+  late SharedPreferences _prefs;
+
+  @override
+  void initState() {
+    super.initState();
+    _carregarConfiguracoes();
+  }
+
+  Future<void> _carregarConfiguracoes() async {
+    _prefs = await SharedPreferences.getInstance();
+    setState(() {
+      _tipoMotor = _prefs.getString('tipoMotor') ?? 'monofasico';
+      _cvController.text = _prefs.getString('cv') ?? '';
+      _tensaoController.text = _prefs.getString('tensao') ?? '';
+      _fpController.text = _prefs.getString('fp') ?? '0.85';
+      _rendimentoController.text = _prefs.getString('rendimento') ?? '0.88';
+    });
+    _calcularAmperagem();
+  }
+
+  void _salvarConfiguracoes() {
+    _prefs.setString('tipoMotor', _tipoMotor);
+    _prefs.setString('cv', _cvController.text);
+    _prefs.setString('tensao', _tensaoController.text);
+    _prefs.setString('fp', _fpController.text);
+    _prefs.setString('rendimento', _rendimentoController.text);
+  }
 
   void _calcularAmperagem() {
     if (!_formKey.currentState!.validate()) return;
@@ -27,8 +53,9 @@ class _CalculadoraAMotorState extends State<CalculadoraAMotor> {
     final fp = double.tryParse(_fpController.text);
     final rendimento = double.tryParse(_rendimentoController.text);
 
-    if (cv == null || tensao == null || fp == null || rendimento == null)
+    if (cv == null || tensao == null || fp == null || rendimento == null) {
       return;
+    }
 
     final potenciaW = cv * 735.5;
 
@@ -65,6 +92,7 @@ class _CalculadoraAMotorState extends State<CalculadoraAMotor> {
                     onChanged:
                         (value) => setState(() {
                           _tipoMotor = value!;
+                          _salvarConfiguracoes();
                           _calcularAmperagem();
                         }),
                   ),
@@ -75,6 +103,7 @@ class _CalculadoraAMotorState extends State<CalculadoraAMotor> {
                     onChanged:
                         (value) => setState(() {
                           _tipoMotor = value!;
+                          _salvarConfiguracoes();
                           _calcularAmperagem();
                         }),
                   ),
@@ -88,13 +117,18 @@ class _CalculadoraAMotorState extends State<CalculadoraAMotor> {
                       decimal: true,
                     ),
                     validator: (value) {
-                      if (value == null || value.isEmpty)
+                      if (value == null || value.isEmpty) {
                         return 'Insira a potência';
-                      if (double.tryParse(value) == null)
+                      }
+                      if (double.tryParse(value) == null) {
                         return 'Valor inválido';
+                      }
                       return null;
                     },
-                    onChanged: (_) => _calcularAmperagem(),
+                    onChanged: (_) {
+                      _salvarConfiguracoes();
+                      _calcularAmperagem();
+                    },
                   ),
                   SizedBox(height: 20),
                   TextFormField(
@@ -107,13 +141,18 @@ class _CalculadoraAMotorState extends State<CalculadoraAMotor> {
                       decimal: true,
                     ),
                     validator: (value) {
-                      if (value == null || value.isEmpty)
+                      if (value == null || value.isEmpty) {
                         return 'Insira a tensão';
-                      if (double.tryParse(value) == null)
+                      }
+                      if (double.tryParse(value) == null) {
                         return 'Valor inválido';
+                      }
                       return null;
                     },
-                    onChanged: (_) => _calcularAmperagem(),
+                    onChanged: (_) {
+                      _salvarConfiguracoes();
+                      _calcularAmperagem();
+                    },
                   ),
                   SizedBox(height: 20),
                   TextFormField(
@@ -127,14 +166,19 @@ class _CalculadoraAMotorState extends State<CalculadoraAMotor> {
                       decimal: true,
                     ),
                     validator: (value) {
-                      if (value == null || value.isEmpty)
+                      if (value == null || value.isEmpty) {
                         return 'Insira o fator de potência';
+                      }
                       final fp = double.tryParse(value);
-                      if (fp == null || fp <= 0 || fp > 1)
+                      if (fp == null || fp <= 0 || fp > 1) {
                         return 'Valor entre 0.1 e 1.0';
+                      }
                       return null;
                     },
-                    onChanged: (_) => _calcularAmperagem(),
+                    onChanged: (_) {
+                      _salvarConfiguracoes();
+                      _calcularAmperagem();
+                    },
                   ),
                   SizedBox(height: 20),
                   TextFormField(
@@ -148,14 +192,19 @@ class _CalculadoraAMotorState extends State<CalculadoraAMotor> {
                       decimal: true,
                     ),
                     validator: (value) {
-                      if (value == null || value.isEmpty)
+                      if (value == null || value.isEmpty) {
                         return 'Insira o rendimento';
+                      }
                       final rend = double.tryParse(value);
-                      if (rend == null || rend <= 0 || rend > 1)
+                      if (rend == null || rend <= 0 || rend > 1) {
                         return 'Valor entre 0.1 e 1.0';
+                      }
                       return null;
                     },
-                    onChanged: (_) => _calcularAmperagem(),
+                    onChanged: (_) {
+                      _salvarConfiguracoes();
+                      _calcularAmperagem();
+                    },
                   ),
                   SizedBox(height: 30),
                   Text(

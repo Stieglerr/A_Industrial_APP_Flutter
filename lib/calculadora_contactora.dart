@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'dart:math';
 
 class CalculadoraContactora extends StatefulWidget {
+  const CalculadoraContactora({super.key});
+
   @override
   _CalculadoraContactoraState createState() => _CalculadoraContactoraState();
 }

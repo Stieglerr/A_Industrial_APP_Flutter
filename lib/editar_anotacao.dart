@@ -4,8 +4,7 @@ import 'database_helper.dart' as db;
 class EditarAnotacaoScreen extends StatefulWidget {
   final Map<String, dynamic> anotacao;
 
-  const EditarAnotacaoScreen({Key? key, required this.anotacao})
-    : super(key: key);
+  const EditarAnotacaoScreen({super.key, required this.anotacao});
 
   @override
   _EditarAnotacaoScreenState createState() => _EditarAnotacaoScreenState();

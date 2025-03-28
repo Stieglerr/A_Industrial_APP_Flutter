@@ -6,23 +6,57 @@ import 'calculadora_eletroduto.dart';
 import 'converter_w_va.dart';
 
 class Residencial extends StatelessWidget {
+  final Color corChumbo = const Color.fromARGB(255, 55, 52, 53);
+
+  final List<Map<String, dynamic>> botoes = [
+    {
+      'texto': 'Calculadora Fio',
+      'pagina': CalculadoraFio(),
+      'icone': Icons.cable,
+      'cor': Colors.deepPurple,
+    },
+    {
+      'texto': 'Consumo R\$',
+      'pagina': ConsumoReais(),
+      'icone': Icons.attach_money,
+      'cor': Colors.green,
+    },
+    {
+      'texto': 'Calculadora Amperes',
+      'pagina': CalculadoraAmperes(),
+      'icone': Icons.flash_on,
+      'cor': Colors.orange,
+    },
+    {
+      'texto': 'Calculadora Eletroduto',
+      'pagina': CalculadoraEletroduto(),
+      'icone': Icons.build,
+      'cor': Colors.blue,
+    },
+    {
+      'texto': 'Converter W em VA',
+      'pagina': ConverterWVA(),
+      'icone': Icons.compare_arrows,
+      'cor': Colors.redAccent,
+    },
+  ];
+
+  Residencial({super.key});
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text(
-          'Calculadoras Elétricas',
-          style: TextStyle(
-            color: Colors.white,
-            fontSize: 24,
-            fontWeight: FontWeight.bold,
-          ),
+        title: Image.asset(
+          'assets/images/logointpreto.png',
+          height: 40,
+          fit: BoxFit.contain,
         ),
         centerTitle: true,
-        backgroundColor: Colors.purple,
+        backgroundColor: corChumbo,
       ),
       body: Container(
-        padding: EdgeInsets.all(20),
+        padding: const EdgeInsets.all(20),
         decoration: BoxDecoration(
           gradient: LinearGradient(
             begin: Alignment.topCenter,
@@ -35,41 +69,14 @@ class Residencial extends StatelessWidget {
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                _buildButton(
-                  context,
-                  'Calculadora Fio',
-                  CalculadoraFio(),
-                  Icons.cable,
-                  Colors.deepPurple,
-                ),
-                _buildButton(
-                  context,
-                  'Consumo R\$',
-                  ConsumoReais(),
-                  Icons.attach_money,
-                  Colors.green,
-                ),
-                _buildButton(
-                  context,
-                  'Calculadora Amperes',
-                  CalculadoraAmperes(),
-                  Icons.flash_on,
-                  Colors.orange,
-                ),
-                _buildButton(
-                  context,
-                  'Calculadora Eletroduto',
-                  CalculadoraEletroduto(),
-                  Icons.build,
-                  Colors.blue,
-                ),
-                _buildButton(
-                  context,
-                  'Converter W em VA',
-                  ConverterWVA(),
-                  Icons.compare_arrows,
-                  Colors.redAccent,
-                ),
+                for (final botao in botoes)
+                  _buildButton(
+                    context,
+                    botao['texto'] as String,
+                    botao['pagina'] as Widget,
+                    botao['icone'] as IconData,
+                    botao['cor'] as Color,
+                  ),
               ],
             ),
           ),
@@ -87,7 +94,7 @@ class Residencial extends StatelessWidget {
   ) {
     return Container(
       width: double.infinity,
-      margin: EdgeInsets.symmetric(vertical: 10),
+      margin: const EdgeInsets.symmetric(vertical: 10),
       child: ElevatedButton(
         onPressed: () {
           Navigator.push(
@@ -97,13 +104,13 @@ class Residencial extends StatelessWidget {
         },
         style: ElevatedButton.styleFrom(
           backgroundColor: color,
-          padding: EdgeInsets.symmetric(vertical: 20, horizontal: 30),
+          padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 30),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(15),
           ),
           elevation: 5,
           shadowColor: color.withOpacity(0.3),
-          textStyle: TextStyle(
+          textStyle: const TextStyle(
             fontSize: 18,
             fontWeight: FontWeight.w600,
             color: Colors.white,
@@ -113,10 +120,10 @@ class Residencial extends StatelessWidget {
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Icon(icon, size: 28, color: Colors.white),
-            SizedBox(width: 15),
+            const SizedBox(width: 15),
             Text(
               text,
-              style: TextStyle(
+              style: const TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.w600,
                 color: Colors.white,

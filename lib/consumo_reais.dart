@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 
 class ConsumoReais extends StatefulWidget {
+  const ConsumoReais({super.key});
+
   @override
   _ConsumoReaisState createState() => _ConsumoReaisState();
 }

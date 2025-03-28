@@ -11,12 +11,15 @@ import 'package:open_file/open_file.dart';
 import 'package:share_plus/share_plus.dart';
 
 class Orcamento extends StatefulWidget {
+  const Orcamento({super.key});
+
   @override
   _OrcamentoState createState() => _OrcamentoState();
 }
 
 class _OrcamentoState extends State<Orcamento> {
   final DatabaseHelper _dbHelper = DatabaseHelper();
+  final Color corChumbo = const Color.fromARGB(255, 55, 52, 53);
   Future<List<Map<String, dynamic>>>? _orcamentosFuture;
 
   @override
@@ -56,7 +59,6 @@ class _OrcamentoState extends State<Orcamento> {
           ),
     );
 
-    // Executar exclusão se confirmado
     if (confirmacao == true) {
       try {
         await _dbHelper.deleteOrcamento(id);
@@ -70,7 +72,7 @@ class _OrcamentoState extends State<Orcamento> {
       } catch (e) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Erro ao excluir orçamento: $e'),
+            content: Text('Erro ao excluir orçamento: ${e.toString()}'),
             backgroundColor: Colors.red,
           ),
         );
@@ -80,7 +82,10 @@ class _OrcamentoState extends State<Orcamento> {
 
   Future<void> _gerarPDF(Map<String, dynamic> orcamento) async {
     final pdf = pw.Document();
-    final produtos = orcamento['produtos'] as List<Map<String, dynamic>>;
+    final produtos =
+        (orcamento['produtos'] as List<dynamic>?)
+            ?.cast<Map<String, dynamic>>() ??
+        [];
 
     pdf.addPage(
       pw.MultiPage(
@@ -90,7 +95,7 @@ class _OrcamentoState extends State<Orcamento> {
               pw.Header(
                 level: 0,
                 child: pw.Text(
-                  'Orçamento para ${orcamento['cliente']}',
+                  'Orçamento para ${orcamento['cliente']?.toString() ?? 'Cliente não informado'}',
                   style: pw.TextStyle(
                     fontSize: 24,
                     fontWeight: pw.FontWeight.bold,
@@ -99,10 +104,9 @@ class _OrcamentoState extends State<Orcamento> {
               ),
               pw.Paragraph(
                 text:
-                    'Data: ${DateFormat('dd/MM/yyyy HH:mm').format(DateTime.parse(orcamento['data']))}',
+                    'Data: ${DateFormat('dd/MM/yyyy HH:mm').format(DateTime.tryParse(orcamento['data']?.toString() ?? '') ?? DateTime.now())}',
               ),
               pw.Table.fromTextArray(
-                context: context,
                 headers: [
                   'Descrição',
                   'Quantidade',
@@ -111,12 +115,14 @@ class _OrcamentoState extends State<Orcamento> {
                 ],
                 data:
                     produtos.map((produto) {
-                      final double precoUnitario = produto['preco'] ?? 0.0;
-                      final int quantidade = produto['quantidade'] ?? 1;
-                      final double precoTotal = precoUnitario * quantidade;
+                      final precoUnitario =
+                          (produto['preco'] as num?)?.toDouble() ?? 0.0;
+                      final quantidade =
+                          (produto['quantidade'] as num?)?.toInt() ?? 1;
+                      final precoTotal = precoUnitario * quantidade;
 
                       return [
-                        produto['nome'],
+                        produto['nome']?.toString() ?? 'Produto sem nome',
                         quantidade.toString(),
                         NumberFormat.currency(
                           locale: 'pt_BR',
@@ -136,18 +142,18 @@ class _OrcamentoState extends State<Orcamento> {
                   pw.Column(
                     crossAxisAlignment: pw.CrossAxisAlignment.end,
                     children: [
-                      if (orcamento['desconto'] != null &&
-                          orcamento['desconto'] > 0)
+                      if (((orcamento['desconto'] as num?)?.toDouble() ?? 0) >
+                          0)
                         pw.Text(
-                          'Subtotal: ${NumberFormat.currency(locale: 'pt_BR', symbol: 'R\$').format(orcamento['valor_total'] + orcamento['desconto'])}',
+                          'Subtotal: ${NumberFormat.currency(locale: 'pt_BR', symbol: 'R\$').format((orcamento['valor_total'] as num).toDouble() + (orcamento['desconto'] as num).toDouble())}',
                         ),
-                      if (orcamento['desconto'] != null &&
-                          orcamento['desconto'] > 0)
+                      if (((orcamento['desconto'] as num?)?.toDouble() ?? 0) >
+                          0)
                         pw.Text(
-                          'Desconto: ${NumberFormat.currency(locale: 'pt_BR', symbol: 'R\$').format(orcamento['desconto'])}',
+                          'Desconto: ${NumberFormat.currency(locale: 'pt_BR', symbol: 'R\$').format((orcamento['desconto'] as num).toDouble())}',
                         ),
                       pw.Text(
-                        'Total: ${NumberFormat.currency(locale: 'pt_BR', symbol: 'R\$').format(orcamento['valor_total'])}',
+                        'Total: ${NumberFormat.currency(locale: 'pt_BR', symbol: 'R\$').format((orcamento['valor_total'] as num).toDouble())}',
                         style: pw.TextStyle(fontWeight: pw.FontWeight.bold),
                       ),
                     ],
@@ -161,7 +167,6 @@ class _OrcamentoState extends State<Orcamento> {
     final output = await getTemporaryDirectory();
     final file = File('${output.path}/orcamento_${orcamento['id']}.pdf');
     await file.writeAsBytes(await pdf.save());
-
     await OpenFile.open(file.path);
     await Share.shareXFiles([XFile(file.path)]);
   }
@@ -170,14 +175,18 @@ class _OrcamentoState extends State<Orcamento> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Orçamentos'),
-        backgroundColor: Colors.purple,
+        title: Image.asset(
+          'assets/images/logointpreto.png',
+          height: 40,
+          fit: BoxFit.contain,
+        ),
+        centerTitle: true,
+        backgroundColor: corChumbo,
+        iconTheme: const IconThemeData(color: Colors.white),
         actions: [
           IconButton(
-            icon: const Icon(Icons.refresh),
-            onPressed: () async {
-              await _carregarOrcamentos();
-            },
+            icon: const Icon(Icons.refresh, color: Colors.white),
+            onPressed: _carregarOrcamentos,
             tooltip: 'Atualizar lista',
           ),
         ],
@@ -192,30 +201,31 @@ class _OrcamentoState extends State<Orcamento> {
             }
 
             if (snapshot.hasError) {
-              return Center(
-                child: Text('Erro ao carregar dados: ${snapshot.error}'),
-              );
+              return Center(child: Text('Erro: ${snapshot.error}'));
             }
 
-            if (!snapshot.hasData || snapshot.data!.isEmpty) {
+            final orcamentos = snapshot.data ?? [];
+
+            if (orcamentos.isEmpty) {
               return const Center(child: Text('Nenhum orçamento cadastrado'));
             }
-
-            final orcamentos = snapshot.data!;
 
             return ListView.builder(
               itemCount: orcamentos.length,
               itemBuilder: (context, index) {
                 final orcamento = orcamentos[index];
                 final produtos =
-                    orcamento['produtos'] as List<Map<String, dynamic>>;
+                    (orcamento['produtos'] as List<dynamic>?)
+                        ?.cast<Map<String, dynamic>>() ??
+                    [];
 
                 return Card(
                   margin: const EdgeInsets.all(8),
                   elevation: 3,
                   child: ExpansionTile(
                     title: Text(
-                      orcamento['cliente'],
+                      orcamento['cliente']?.toString() ??
+                          'Cliente não informado',
                       style: const TextStyle(
                         fontWeight: FontWeight.bold,
                         fontSize: 18,
@@ -226,15 +236,15 @@ class _OrcamentoState extends State<Orcamento> {
                       children: [
                         const SizedBox(height: 4),
                         Text(
-                          'Total: ${NumberFormat.currency(locale: 'pt_BR', symbol: 'R\$').format(orcamento['valor_total'])}',
+                          'Total: ${NumberFormat.currency(locale: 'pt_BR', symbol: 'R\$').format((orcamento['valor_total'] as num?)?.toDouble() ?? 0.0)}',
                           style: TextStyle(
+                            color: corChumbo,
                             fontWeight: FontWeight.bold,
-                            color: Colors.purple[700],
                             fontSize: 16,
                           ),
                         ),
                         Text(
-                          'Data: ${DateFormat('dd/MM/yyyy HH:mm').format(DateTime.parse(orcamento['data']))}',
+                          'Data: ${DateFormat('dd/MM/yyyy HH:mm').format(DateTime.tryParse(orcamento['data']?.toString() ?? '') ?? DateTime.now())}',
                           style: const TextStyle(fontSize: 14),
                         ),
                         Text(
@@ -247,40 +257,31 @@ class _OrcamentoState extends State<Orcamento> {
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         IconButton(
-                          icon: const Icon(Icons.edit, color: Colors.blue),
+                          icon: Icon(Icons.edit, color: corChumbo),
                           onPressed: () async {
                             final result = await Navigator.push(
                               context,
                               MaterialPageRoute(
                                 builder:
                                     (context) => EditarOrcamentoScreen(
-                                      orcamentoId: orcamento['id'],
+                                      orcamentoId: orcamento['id'] as int,
                                     ),
                               ),
                             );
-
-                            if (result == true) {
-                              await _carregarOrcamentos();
-                            }
+                            if (result == true) await _carregarOrcamentos();
                           },
-                          tooltip: 'Editar orçamento',
                         ),
                         IconButton(
-                          icon: const Icon(
+                          icon: Icon(
                             Icons.picture_as_pdf,
                             color: Colors.purple,
                           ),
-                          onPressed: () async {
-                            await _gerarPDF(orcamento);
-                          },
-                          tooltip: 'Gerar PDF',
+                          onPressed: () => _gerarPDF(orcamento),
                         ),
                         IconButton(
                           icon: const Icon(Icons.delete, color: Colors.red),
-                          onPressed: () async {
-                            await _excluirOrcamento(orcamento['id']);
-                          },
-                          tooltip: 'Excluir orçamento',
+                          onPressed:
+                              () => _excluirOrcamento(orcamento['id'] as int),
                         ),
                       ],
                     ),
@@ -306,8 +307,8 @@ class _OrcamentoState extends State<Orcamento> {
                                   child: Text(
                                     'Descrição',
                                     style: TextStyle(
-                                      fontWeight: FontWeight.bold,
                                       color: Colors.grey[600],
+                                      fontWeight: FontWeight.bold,
                                     ),
                                   ),
                                 ),
@@ -317,8 +318,8 @@ class _OrcamentoState extends State<Orcamento> {
                                     'Qtde',
                                     textAlign: TextAlign.center,
                                     style: TextStyle(
-                                      fontWeight: FontWeight.bold,
                                       color: Colors.grey[600],
+                                      fontWeight: FontWeight.bold,
                                     ),
                                   ),
                                 ),
@@ -328,8 +329,8 @@ class _OrcamentoState extends State<Orcamento> {
                                     'Valor',
                                     textAlign: TextAlign.end,
                                     style: TextStyle(
-                                      fontWeight: FontWeight.bold,
                                       color: Colors.grey[600],
+                                      fontWeight: FontWeight.bold,
                                     ),
                                   ),
                                 ),
@@ -337,11 +338,11 @@ class _OrcamentoState extends State<Orcamento> {
                             ),
                             const Divider(height: 10),
                             ...produtos.map((produto) {
-                              final double precoUnitario =
-                                  produto['preco'] ?? 0.0;
-                              final int quantidade = produto['quantidade'] ?? 1;
-                              final double precoTotal =
-                                  precoUnitario * quantidade;
+                              final precoUnitario =
+                                  (produto['preco'] as num?)?.toDouble() ?? 0.0;
+                              final quantidade =
+                                  (produto['quantidade'] as num?)?.toInt() ?? 1;
+                              final precoTotal = precoUnitario * quantidade;
 
                               return Padding(
                                 padding: const EdgeInsets.symmetric(
@@ -351,7 +352,10 @@ class _OrcamentoState extends State<Orcamento> {
                                   children: [
                                     Expanded(
                                       flex: 3,
-                                      child: Text(produto['nome']),
+                                      child: Text(
+                                        produto['nome']?.toString() ??
+                                            'Produto sem nome',
+                                      ),
                                     ),
                                     Expanded(
                                       flex: 1,
@@ -369,7 +373,7 @@ class _OrcamentoState extends State<Orcamento> {
                                         ).format(precoTotal),
                                         textAlign: TextAlign.end,
                                         style: TextStyle(
-                                          color: Colors.purple[700],
+                                          color: corChumbo,
                                           fontWeight: FontWeight.bold,
                                         ),
                                       ),
@@ -377,7 +381,7 @@ class _OrcamentoState extends State<Orcamento> {
                                   ],
                                 ),
                               );
-                            }).toList(),
+                            }),
                             const Divider(height: 20),
                             Row(
                               mainAxisAlignment: MainAxisAlignment.end,
@@ -385,22 +389,24 @@ class _OrcamentoState extends State<Orcamento> {
                                 Column(
                                   crossAxisAlignment: CrossAxisAlignment.end,
                                   children: [
-                                    if (orcamento['desconto'] != null &&
-                                        orcamento['desconto'] > 0) ...[
+                                    if (((orcamento['desconto'] as num?)
+                                                ?.toDouble() ??
+                                            0) >
+                                        0) ...[
                                       Text(
-                                        'Subtotal: ${NumberFormat.currency(locale: 'pt_BR', symbol: 'R\$').format(orcamento['valor_total'] + orcamento['desconto'])}',
+                                        'Subtotal: ${NumberFormat.currency(locale: 'pt_BR', symbol: 'R\$').format((orcamento['valor_total'] as num).toDouble() + (orcamento['desconto'] as num).toDouble())}',
                                       ),
                                       Text(
-                                        'Desconto: ${NumberFormat.currency(locale: 'pt_BR', symbol: 'R\$').format(orcamento['desconto'])}',
+                                        'Desconto: ${NumberFormat.currency(locale: 'pt_BR', symbol: 'R\$').format((orcamento['desconto'] as num).toDouble())}',
                                       ),
                                       const SizedBox(height: 4),
                                     ],
                                     Text(
-                                      'Total: ${NumberFormat.currency(locale: 'pt_BR', symbol: 'R\$').format(orcamento['valor_total'])}',
+                                      'Total: ${NumberFormat.currency(locale: 'pt_BR', symbol: 'R\$').format((orcamento['valor_total'] as num).toDouble())}',
                                       style: TextStyle(
                                         fontWeight: FontWeight.bold,
                                         fontSize: 16,
-                                        color: Colors.purple[800],
+                                        color: corChumbo,
                                       ),
                                     ),
                                   ],
@@ -419,17 +425,17 @@ class _OrcamentoState extends State<Orcamento> {
         ),
       ),
       floatingActionButton: FloatingActionButton(
-        backgroundColor: Colors.purple,
+        backgroundColor: corChumbo,
         onPressed: () async {
           final result = await Navigator.push(
             context,
-            MaterialPageRoute(builder: (context) => NovoOrcamentoScreen()),
+            MaterialPageRoute(
+              builder: (context) => const NovoOrcamentoScreen(),
+            ),
           );
-          if (result == true) {
-            await _carregarOrcamentos();
-          }
+          if (result == true) await _carregarOrcamentos();
         },
-        child: const Icon(Icons.add),
+        child: const Icon(Icons.add, color: Colors.white),
       ),
     );
   }

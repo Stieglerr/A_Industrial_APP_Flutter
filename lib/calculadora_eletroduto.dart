@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'dart:math' as math;
 
 class CalculadoraEletroduto extends StatefulWidget {
+  const CalculadoraEletroduto({super.key});
+
   @override
   _CalculadoraEletrodutoState createState() => _CalculadoraEletrodutoState();
 }
