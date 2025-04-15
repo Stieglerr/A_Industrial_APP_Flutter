@@ -1,80 +1,34 @@
 import 'package:flutter/material.dart';
-import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 import 'package:vibration/vibration.dart';
-import 'residencial/residencial.dart';
-import 'motores/motores.dart';
-import 'informacoes/informacoes.dart';
-import 'eletricista/eletricista.dart';
-import 'eletricista/orcamento.dart';
-import 'dart:io';
+import 'residencial_info.dart';
+import 'motores_info.dart';
+import 'eletricista_info.dart';
 
-void main() async {
-  WidgetsFlutterBinding.ensureInitialized();
-
-  if (Platform.isWindows || Platform.isLinux || Platform.isMacOS) {
-    sqfliteFfiInit();
-    databaseFactory = databaseFactoryFfi;
-  }
-
-  runApp(const MyApp());
-}
-
-class MyApp extends StatelessWidget {
-  const MyApp({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return MaterialApp(
-      debugShowCheckedModeBanner: false,
-      home: TelaPrincipal(),
-      theme: ThemeData(
-        primarySwatch: Colors.purple,
-        elevatedButtonTheme: ElevatedButtonThemeData(
-          style: ElevatedButton.styleFrom(minimumSize: const Size(300, 100)),
-        ),
-      ),
-      routes: {
-        '/orcamentos': (context) => Orcamento(),
-        '/residencial': (context) => Residencial(),
-        '/motores': (context) => Motores(),
-        '/informacoes': (context) => Informacoes(),
-        '/eletricista': (context) => Eletricista(),
-      },
-    );
-  }
-}
-
-class TelaPrincipal extends StatelessWidget {
+class Informacoes extends StatelessWidget {
   final Color corChumbo = const Color.fromARGB(255, 55, 52, 53);
 
   final List<Map<String, dynamic>> botoes = [
     {
       'texto': 'Residencial',
-      'rota': '/residencial',
+      'rota': ResidencialInfo(),
       'icone': Icons.home,
       'cor': Colors.deepPurple,
     },
     {
       'texto': 'Motores',
-      'rota': '/motores',
+      'rota': MotoresInfo(),
       'icone': Icons.engineering,
       'cor': Colors.blue,
     },
     {
       'texto': 'Eletricista',
-      'rota': '/eletricista',
+      'rota': EletricistaInfo(),
       'icone': Icons.electrical_services,
       'cor': Colors.green,
     },
-    {
-      'texto': 'Informações',
-      'rota': '/informacoes',
-      'icone': Icons.info,
-      'cor': Colors.orange,
-    },
   ];
 
-  TelaPrincipal({super.key});
+  Informacoes({super.key});
 
   PageRouteBuilder _customPageRoute(Widget page) {
     return PageRouteBuilder(
@@ -134,7 +88,7 @@ class TelaPrincipal extends StatelessWidget {
                   _buildButton(
                     context,
                     botao['texto'] as String,
-                    botao['rota'] as String,
+                    botao['rota'] as Widget,
                     botao['icone'] as IconData,
                     botao['cor'] as Color,
                   ),
@@ -149,7 +103,7 @@ class TelaPrincipal extends StatelessWidget {
   Widget _buildButton(
     BuildContext context,
     String text,
-    String rota,
+    Widget rota,
     IconData icon,
     Color color,
   ) {
@@ -159,7 +113,7 @@ class TelaPrincipal extends StatelessWidget {
       child: ElevatedButton(
         onPressed: () async {
           await _vibrar();
-          Navigator.push(context, _customPageRoute(_getScreen(rota)));
+          Navigator.push(context, _customPageRoute(rota));
         },
         style: ElevatedButton.styleFrom(
           backgroundColor: color,
@@ -192,22 +146,5 @@ class TelaPrincipal extends StatelessWidget {
         ),
       ),
     );
-  }
-
-  Widget _getScreen(String rota) {
-    switch (rota) {
-      case '/residencial':
-        return Residencial();
-      case '/motores':
-        return Motores();
-      case '/eletricista':
-        return Eletricista();
-      case '/informacoes':
-        return Informacoes();
-      case '/orcamentos':
-        return Orcamento();
-      default:
-        return const SizedBox.shrink();
-    }
   }
 }

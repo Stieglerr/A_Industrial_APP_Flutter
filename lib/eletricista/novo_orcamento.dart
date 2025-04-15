@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-import 'dart:convert';
 import 'database_helper.dart';
 
 class NovoOrcamentoScreen extends StatefulWidget {
@@ -14,6 +13,9 @@ class _NovoOrcamentoScreenState extends State<NovoOrcamentoScreen> {
   final Color corChumbo = const Color.fromARGB(255, 55, 52, 53);
   final _formKey = GlobalKey<FormState>();
   final TextEditingController _clienteController = TextEditingController();
+  final TextEditingController _descontoController = TextEditingController(
+    text: '0',
+  );
   final List<Map<String, TextEditingController>> _produtos = [];
   final DatabaseHelper _dbHelper = DatabaseHelper();
   double _valorTotal = 0.0;
@@ -28,8 +30,9 @@ class _NovoOrcamentoScreenState extends State<NovoOrcamentoScreen> {
   void _adicionarProduto() {
     setState(() {
       _produtos.add(<String, TextEditingController>{
-        'descricao': TextEditingController(),
-        'valor': TextEditingController(),
+        'nome': TextEditingController(),
+        'preco': TextEditingController(),
+        'quantidade': TextEditingController(text: '1'),
       });
     });
   }
@@ -46,12 +49,16 @@ class _NovoOrcamentoScreenState extends State<NovoOrcamentoScreen> {
   void _calcularTotal() {
     double total = 0.0;
     for (var produto in _produtos) {
-      final valorTexto = produto['valor']!.text.replaceAll(RegExp(r','), '.');
+      final valorTexto = produto['preco']!.text.replaceAll(RegExp(r','), '.');
       final valor = double.tryParse(valorTexto) ?? 0.0;
-      total += valor;
+      final quantidade = int.tryParse(produto['quantidade']!.text) ?? 1;
+      total += valor * quantidade;
     }
+
+    final desconto = double.tryParse(_descontoController.text) ?? 0.0;
+
     setState(() {
-      _valorTotal = total;
+      _valorTotal = total - desconto;
     });
   }
 
@@ -60,20 +67,21 @@ class _NovoOrcamentoScreenState extends State<NovoOrcamentoScreen> {
       setState(() => _isLoading = true);
 
       try {
-        final List<Map<String, dynamic>> produtos =
+        final produtos =
             _produtos.map((produto) {
-              return <String, dynamic>{
-                'descricao': produto['descricao']!.text.trim(),
-                'valor': double.parse(
-                  produto['valor']!.text.replaceAll(RegExp(r','), '.'),
+              return {
+                'nome': produto['nome']!.text.trim(),
+                'preco': double.parse(
+                  produto['preco']!.text.replaceAll(RegExp(r','), '.'),
                 ),
+                'quantidade': int.tryParse(produto['quantidade']!.text) ?? 1,
               };
             }).toList();
 
         await _dbHelper.insertOrcamento({
           'cliente': _clienteController.text.trim(),
-          'produtos': jsonEncode(produtos),
-          'valor_total': _valorTotal,
+          'produtos': produtos,
+          'desconto': double.tryParse(_descontoController.text) ?? 0.0,
         });
 
         if (!mounted) return;
@@ -129,13 +137,34 @@ class _NovoOrcamentoScreenState extends State<NovoOrcamentoScreen> {
                       (value) => value!.isEmpty ? 'Informe o cliente' : null,
                 ),
                 const SizedBox(height: 20),
+                TextFormField(
+                  controller: _descontoController,
+                  decoration: const InputDecoration(
+                    labelText: 'Desconto (R\$)',
+                    border: OutlineInputBorder(),
+                    prefixText: 'R\$ ',
+                    hintText: '0,00',
+                  ),
+                  keyboardType: TextInputType.numberWithOptions(decimal: true),
+                  onChanged: (value) => _calcularTotal(),
+                  validator: (value) {
+                    if (value == null || value.isEmpty) return null;
+                    final cleanedValue = value.replaceAll(RegExp(r','), '.');
+                    final parsed = double.tryParse(cleanedValue);
+                    if (parsed == null) return 'Valor inválido';
+                    if (parsed < 0) return 'Desconto não pode ser negativo';
+                    return null;
+                  },
+                ),
+                const SizedBox(height: 20),
                 ..._produtos.asMap().entries.map((entry) {
                   final index = entry.key;
                   final produto = entry.value;
                   return _ProdutoItem(
                     key: ValueKey(index),
-                    descricaoController: produto['descricao']!,
-                    valorController: produto['valor']!,
+                    nomeController: produto['nome']!,
+                    precoController: produto['preco']!,
+                    quantidadeController: produto['quantidade']!,
                     onRemover: () => _removerProduto(index),
                     onChanged: _calcularTotal,
                     mostrarBotaoRemover: _produtos.length > 1,
@@ -221,16 +250,18 @@ class _NovoOrcamentoScreenState extends State<NovoOrcamentoScreen> {
 }
 
 class _ProdutoItem extends StatefulWidget {
-  final TextEditingController descricaoController;
-  final TextEditingController valorController;
+  final TextEditingController nomeController;
+  final TextEditingController precoController;
+  final TextEditingController quantidadeController;
   final VoidCallback onRemover;
   final VoidCallback onChanged;
   final bool mostrarBotaoRemover;
 
   const _ProdutoItem({
     required super.key,
-    required this.descricaoController,
-    required this.valorController,
+    required this.nomeController,
+    required this.precoController,
+    required this.quantidadeController,
     required this.onRemover,
     required this.onChanged,
     required this.mostrarBotaoRemover,
@@ -241,11 +272,13 @@ class _ProdutoItem extends StatefulWidget {
 }
 
 class __ProdutoItemState extends State<_ProdutoItem> {
-  final _valorFocusNode = FocusNode();
+  final _precoFocusNode = FocusNode();
+  final _quantidadeFocusNode = FocusNode();
 
   @override
   void dispose() {
-    _valorFocusNode.dispose();
+    _precoFocusNode.dispose();
+    _quantidadeFocusNode.dispose();
     super.dispose();
   }
 
@@ -259,9 +292,9 @@ class __ProdutoItemState extends State<_ProdutoItem> {
             Expanded(
               flex: 2,
               child: TextFormField(
-                controller: widget.descricaoController,
+                controller: widget.nomeController,
                 decoration: const InputDecoration(
-                  labelText: 'Descrição',
+                  labelText: 'Nome do Produto',
                   border: OutlineInputBorder(),
                   hintText: 'Ex: Instalação de luminária',
                   labelStyle: TextStyle(color: Colors.black),
@@ -277,10 +310,10 @@ class __ProdutoItemState extends State<_ProdutoItem> {
             Expanded(
               flex: 1,
               child: TextFormField(
-                controller: widget.valorController,
-                focusNode: _valorFocusNode,
+                controller: widget.precoController,
+                focusNode: _precoFocusNode,
                 decoration: const InputDecoration(
-                  labelText: 'Valor',
+                  labelText: 'Preço',
                   border: OutlineInputBorder(),
                   prefixText: 'R\$ ',
                   hintText: '0,00',
@@ -292,11 +325,38 @@ class __ProdutoItemState extends State<_ProdutoItem> {
                 keyboardType: TextInputType.numberWithOptions(decimal: true),
                 textInputAction: TextInputAction.next,
                 validator: (value) {
-                  if (value!.isEmpty) return 'Informe o valor';
+                  if (value!.isEmpty) return 'Informe o preço';
                   final cleanedValue = value.replaceAll(RegExp(r','), '.');
                   final parsed = double.tryParse(cleanedValue);
                   if (parsed == null) return 'Valor inválido';
-                  if (parsed <= 0) return 'Valor deve ser positivo';
+                  if (parsed <= 0) return 'Preço deve ser positivo';
+                  return null;
+                },
+                onChanged: (value) => widget.onChanged(),
+                onEditingComplete: () {
+                  FocusScope.of(context).requestFocus(_quantidadeFocusNode);
+                },
+              ),
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              flex: 1,
+              child: TextFormField(
+                controller: widget.quantidadeController,
+                focusNode: _quantidadeFocusNode,
+                decoration: const InputDecoration(
+                  labelText: 'Qtde',
+                  border: OutlineInputBorder(),
+                  labelStyle: TextStyle(color: Colors.black),
+                ),
+                style: const TextStyle(color: Colors.black),
+                keyboardType: TextInputType.number,
+                textInputAction: TextInputAction.next,
+                validator: (value) {
+                  if (value!.isEmpty) return 'Informe a quantidade';
+                  final parsed = int.tryParse(value);
+                  if (parsed == null) return 'Número inválido';
+                  if (parsed <= 0) return 'Quantidade mínima: 1';
                   return null;
                 },
                 onChanged: (value) => widget.onChanged(),
