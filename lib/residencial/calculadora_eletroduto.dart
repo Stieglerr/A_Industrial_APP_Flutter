@@ -5,11 +5,16 @@ class CalculadoraEletroduto extends StatefulWidget {
   const CalculadoraEletroduto({super.key});
 
   @override
-  _CalculadoraEletrodutoState createState() => _CalculadoraEletrodutoState();
+  CalculadoraEletrodutoState createState() => CalculadoraEletrodutoState();
 }
 
-class _CalculadoraEletrodutoState extends State<CalculadoraEletroduto> {
+class CalculadoraEletrodutoState extends State<CalculadoraEletroduto> {
+  final Color corChumbo = const Color.fromARGB(255, 55, 52, 53);
+
+  // Cabos corrigidos e atualizados
   final Map<double, double> _cabos = {
+    0.5: 1.4,
+    1.5: 2.1,
     2.5: 3.1,
     4: 3.9,
     6: 4.8,
@@ -81,7 +86,18 @@ class _CalculadoraEletrodutoState extends State<CalculadoraEletroduto> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text('Calculadora Eletroduto')),
+      appBar: AppBar(
+        title: Center(
+          child: Image.asset(
+            'assets/images/logointpreto.png',
+            height: 40,
+            fit: BoxFit.contain,
+          ),
+        ),
+        centerTitle: true,
+        backgroundColor: corChumbo,
+        iconTheme: const IconThemeData(color: Colors.white),
+      ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Column(
@@ -92,29 +108,38 @@ class _CalculadoraEletrodutoState extends State<CalculadoraEletroduto> {
                   _cabos.keys.map((cable) {
                     return DropdownMenuItem<double>(
                       value: cable,
-                      child: Text('${cable.toInt()} mm² (∅${_cabos[cable]}mm)'),
+                      child: Text(
+                        '${cable.toStringAsFixed(cable.truncateToDouble() == cable ? 0 : 1)} mm² (∅${_cabos[cable]}mm)',
+                        style: const TextStyle(color: Colors.black),
+                      ),
                     );
                   }).toList(),
-              onChanged:
-                  (value) => setState(() {
-                    _selectedCable = value!;
-                    _calculate();
-                  }),
+              onChanged: (value) {
+                setState(() {
+                  _selectedCable = value!;
+                  _calculate();
+                });
+              },
               isExpanded: true,
+              style: const TextStyle(color: Colors.black),
             ),
-            SizedBox(height: 20),
+            const SizedBox(height: 20),
             TextField(
-              decoration: InputDecoration(
+              decoration: const InputDecoration(
                 labelText: 'Quantidade de cabos',
                 border: OutlineInputBorder(),
+                labelStyle: TextStyle(color: Colors.black),
               ),
+              style: const TextStyle(color: Colors.black),
               keyboardType: TextInputType.number,
               onChanged: (value) {
-                setState(() => _quantity = value);
-                _calculate();
+                setState(() {
+                  _quantity = value;
+                  _calculate();
+                });
               },
             ),
-            SizedBox(height: 30),
+            const SizedBox(height: 30),
             Text(
               _result,
               style: TextStyle(
@@ -124,7 +149,7 @@ class _CalculadoraEletrodutoState extends State<CalculadoraEletroduto> {
               ),
               textAlign: TextAlign.center,
             ),
-            SizedBox(height: 20),
+            const SizedBox(height: 20),
             Text(
               'De acordo com a NBR5410:\n'
               '1 cabo: 53% de ocupação\n'

@@ -8,6 +8,24 @@ class Motores extends StatelessWidget {
 
   const Motores({super.key});
 
+  PageRouteBuilder _customPageRoute(Widget page) {
+    return PageRouteBuilder(
+      transitionDuration: const Duration(milliseconds: 500),
+      pageBuilder: (context, animation, secondaryAnimation) => page,
+      transitionsBuilder: (context, animation, secondaryAnimation, child) {
+        return SlideTransition(
+          position: Tween<Offset>(
+            begin: const Offset(1.0, 0.0),
+            end: Offset.zero,
+          ).animate(
+            CurvedAnimation(parent: animation, curve: Curves.easeInOut),
+          ),
+          child: FadeTransition(opacity: animation, child: child),
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -19,8 +37,8 @@ class Motores extends StatelessWidget {
         ),
         centerTitle: true,
         backgroundColor: corChumbo,
-        iconTheme: IconThemeData(color: Colors.white),
-      ), // Botão voltar branco
+        iconTheme: const IconThemeData(color: Colors.white),
+      ),
       body: Container(
         padding: const EdgeInsets.all(20),
         decoration: BoxDecoration(
@@ -78,7 +96,7 @@ class Motores extends StatelessWidget {
         onPressed: () {
           Navigator.push(
             context,
-            MaterialPageRoute(builder: (context) => page),
+            _customPageRoute(page), // Usando a transição personalizada
           );
         },
         style: ElevatedButton.styleFrom(
@@ -88,7 +106,7 @@ class Motores extends StatelessWidget {
             borderRadius: BorderRadius.circular(15),
           ),
           elevation: 5,
-          shadowColor: color.withOpacity(0.3),
+          shadowColor: color.withAlpha((0.3 * 255).toInt()),
           textStyle: const TextStyle(
             fontSize: 18,
             fontWeight: FontWeight.w600,

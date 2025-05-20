@@ -4,10 +4,11 @@ class ConverterWVA extends StatefulWidget {
   const ConverterWVA({super.key});
 
   @override
-  _ConverterWVAState createState() => _ConverterWVAState();
+  ConverterWVAState createState() => ConverterWVAState();
 }
 
-class _ConverterWVAState extends State<ConverterWVA> {
+class ConverterWVAState extends State<ConverterWVA> {
+  final Color corChumbo = const Color.fromARGB(255, 55, 52, 53);
   String _watts = '';
   String _powerFactor = '';
 
@@ -34,35 +35,50 @@ class _ConverterWVAState extends State<ConverterWVA> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text('Converter W em VA')),
+      appBar: AppBar(
+        title: Center(
+          child: Image.asset(
+            'assets/images/logointpreto.png',
+            height: 40,
+            fit: BoxFit.contain,
+          ),
+        ),
+        centerTitle: true,
+        backgroundColor: corChumbo,
+        iconTheme: const IconThemeData(color: Colors.white),
+      ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Column(
           children: [
             TextField(
-              decoration: InputDecoration(
+              decoration: const InputDecoration(
                 labelText: 'Potência em Watts (W)',
                 border: OutlineInputBorder(),
+                labelStyle: TextStyle(color: Colors.black),
               ),
+              style: const TextStyle(color: Colors.black),
               keyboardType: TextInputType.numberWithOptions(decimal: true),
               onChanged: (value) => setState(() => _watts = value),
             ),
-            SizedBox(height: 20),
+            const SizedBox(height: 20),
             TextField(
-              decoration: InputDecoration(
+              decoration: const InputDecoration(
                 labelText: 'Fator de Potência (0.1 a 1.0)',
                 border: OutlineInputBorder(),
+                labelStyle: TextStyle(color: Colors.black),
               ),
+              style: const TextStyle(color: Colors.black),
               keyboardType: TextInputType.numberWithOptions(decimal: true),
               onChanged: (value) => setState(() => _powerFactor = value),
             ),
-            SizedBox(height: 30),
+            const SizedBox(height: 30),
             Text(
               _calculateVA(),
               style: TextStyle(
                 fontSize: 20,
                 fontWeight: FontWeight.bold,
-                color: Colors.blue,
+                color: Colors.blue[700],
               ),
             ),
           ],

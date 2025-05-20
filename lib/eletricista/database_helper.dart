@@ -2,6 +2,7 @@ import 'dart:io';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 import 'package:path/path.dart';
 import 'package:intl/intl.dart';
+import 'package:flutter/foundation.dart'; // For debugPrint
 
 class DatabaseHelper {
   static final DatabaseHelper instance = DatabaseHelper._internal();
@@ -13,7 +14,7 @@ class DatabaseHelper {
   static const String tableAnotacoes = 'anotacoes';
 
   // Current database version
-  static const int dbVersion = 7; // Incremented version for new migrations
+  static const int dbVersion = 7;
 
   factory DatabaseHelper() => instance;
 
@@ -44,7 +45,6 @@ class DatabaseHelper {
   }
 
   Future<void> _createDatabase(Database db, int version) async {
-    // Create orcamentos table
     await db.execute('''
       CREATE TABLE $tableOrcamentos (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -55,7 +55,6 @@ class DatabaseHelper {
       )
     ''');
 
-    // Create produtos table with foreign key
     await db.execute('''
       CREATE TABLE $tableProdutos (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -69,7 +68,6 @@ class DatabaseHelper {
       )
     ''');
 
-    // Create anotacoes table
     await db.execute('''
       CREATE TABLE $tableAnotacoes (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -129,13 +127,12 @@ class DatabaseHelper {
           'ALTER TABLE $tableProdutos ADD COLUMN quantidade INTEGER DEFAULT 1',
         );
       } catch (e) {
-        print('Error adding quantidade column: $e');
+        debugPrint('Error adding quantidade column: $e');
       }
     }
 
     if (oldVersion < 6) {
       try {
-        // Recreate orcamentos table to remove any unwanted columns
         await db.execute('''
           CREATE TABLE ${tableOrcamentos}_new (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -157,13 +154,12 @@ class DatabaseHelper {
           'ALTER TABLE ${tableOrcamentos}_new RENAME TO $tableOrcamentos',
         );
       } catch (e) {
-        print('Error during orcamentos migration: $e');
+        debugPrint('Error during orcamentos migration: $e');
       }
     }
 
     if (oldVersion < 7) {
       try {
-        // Ensure produtos table has proper foreign key constraint
         await db.execute('''
           CREATE TABLE ${tableProdutos}_new (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -188,9 +184,11 @@ class DatabaseHelper {
           'ALTER TABLE ${tableProdutos}_new RENAME TO $tableProdutos',
         );
 
-        print('Successfully migrated produtos table with proper foreign key');
+        debugPrint(
+          'Successfully migrated produtos table with proper foreign key',
+        );
       } catch (e) {
-        print('Error during produtos table migration: $e');
+        debugPrint('Error during produtos table migration: $e');
         rethrow;
       }
     }
@@ -204,13 +202,12 @@ class DatabaseHelper {
 
     try {
       return await db.transaction<int>((txn) async {
-        // 1. Insert the orcamento first
         final orcamentoId = await txn.insert(tableOrcamentos, {
           'cliente':
               orcamento['cliente']?.toString().trim() ??
               'Cliente não informado',
           'data': data,
-          'valor_total': 0.0, // Will be calculated
+          'valor_total': 0.0,
           'desconto': (orcamento['desconto'] as num?)?.toDouble() ?? 0.0,
         });
 
@@ -218,7 +215,6 @@ class DatabaseHelper {
           throw Exception('Failed to insert orcamento - no ID generated');
         }
 
-        // Verify the orcamento was actually inserted
         final insertedOrcamento = await txn.query(
           tableOrcamentos,
           where: 'id = ?',
@@ -230,12 +226,10 @@ class DatabaseHelper {
           throw Exception('Orcamento insertion failed verification');
         }
 
-        // 2. Process products with proper type casting and validation
         final produtos =
             (orcamento['produtos'] as List?)?.map((p) {
               final produto = p as Map<String, dynamic>;
 
-              // Validate product data
               if (produto['nome'] == null || produto['preco'] == null) {
                 throw Exception('Product data is incomplete');
               }
@@ -273,7 +267,6 @@ class DatabaseHelper {
 
         await batch.commit();
 
-        // 3. Update total value
         await txn.update(
           tableOrcamentos,
           {'valor_total': total},
@@ -284,7 +277,7 @@ class DatabaseHelper {
         return orcamentoId;
       });
     } catch (e) {
-      print('Error in insertOrcamento: $e');
+      debugPrint('Error in insertOrcamento: $e');
       rethrow;
     }
   }
@@ -330,13 +323,11 @@ class DatabaseHelper {
     final id = orcamento['id'] as int;
 
     return await db.transaction<int>((txn) async {
-      // Calculate new total with proper type casting
       double total = 0.0;
       final produtos =
           (orcamento['produtos'] as List?)?.map((p) {
             final produto = p as Map<String, dynamic>;
 
-            // Validate product data
             if (produto['nome'] == null || produto['preco'] == null) {
               throw Exception('Product data is incomplete');
             }
@@ -353,7 +344,6 @@ class DatabaseHelper {
           }).toList() ??
           [];
 
-      // Update orcamento
       final result = await txn.update(
         tableOrcamentos,
         {
@@ -367,14 +357,12 @@ class DatabaseHelper {
         whereArgs: [id],
       );
 
-      // Delete old products
       await txn.delete(
         tableProdutos,
         where: 'orcamento_id = ?',
         whereArgs: [id],
       );
 
-      // Insert new products
       final batch = txn.batch();
       for (final produto in produtos) {
         batch.insert(tableProdutos, {
@@ -442,24 +430,21 @@ class DatabaseHelper {
   Future<void> verifyDatabaseIntegrity() async {
     final db = await database;
     try {
-      // Check foreign key constraints
       final fkCheck = await db.rawQuery('PRAGMA foreign_key_check');
       if (fkCheck.isNotEmpty) {
-        print('Foreign key violations found: $fkCheck');
+        debugPrint('Foreign key violations found: $fkCheck');
         throw Exception('Database has foreign key violations');
       }
 
-      // Check foreign key list for produtos table
       final fkList = await db.rawQuery(
         'PRAGMA foreign_key_list($tableProdutos)',
       );
-      print('Foreign key constraints for produtos: $fkList');
+      debugPrint('Foreign key constraints for produtos: $fkList');
 
       if (fkList.isEmpty) {
         throw Exception('No foreign key constraint found for produtos table');
       }
 
-      // Check table structures
       final orcamentosInfo = await db.rawQuery(
         'PRAGMA table_info($tableOrcamentos)',
       );
@@ -467,17 +452,17 @@ class DatabaseHelper {
         'PRAGMA table_info($tableProdutos)',
       );
 
-      print('Orcamentos table structure: $orcamentosInfo');
-      print('Produtos table structure: $produtosInfo');
+      debugPrint('Orcamentos table structure: $orcamentosInfo');
+      debugPrint('Produtos table structure: $produtosInfo');
     } catch (e) {
-      print('Error verifying database integrity: $e');
+      debugPrint('Error verifying database integrity: $e');
       rethrow;
     }
   }
 
   Future<void> resetDatabase() async {
     final path = await getDatabasesPath();
-    final file = File('${path}/app_database.db');
+    final file = File('$path/app_database.db');
     if (await file.exists()) {
       await file.delete();
     }

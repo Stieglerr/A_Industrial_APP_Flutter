@@ -7,10 +7,11 @@ class EditarAnotacaoScreen extends StatefulWidget {
   const EditarAnotacaoScreen({super.key, required this.anotacao});
 
   @override
-  _EditarAnotacaoScreenState createState() => _EditarAnotacaoScreenState();
+  EditarAnotacaoScreenState createState() => EditarAnotacaoScreenState();
 }
 
-class _EditarAnotacaoScreenState extends State<EditarAnotacaoScreen> {
+class EditarAnotacaoScreenState extends State<EditarAnotacaoScreen> {
+  final Color corChumbo = const Color.fromARGB(255, 55, 52, 53);
   final db.DatabaseHelper _dbHelper = db.DatabaseHelper();
   late TextEditingController _tituloController;
   late TextEditingController _conteudoController;
@@ -42,11 +43,15 @@ class _EditarAnotacaoScreenState extends State<EditarAnotacaoScreen> {
 
       try {
         await _dbHelper.updateAnotacao(anotacaoAtualizada);
-        Navigator.pop(context, true);
+        if (mounted) {
+          Navigator.pop(context, true);
+        }
       } catch (e) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Erro ao atualizar anotação: $e')),
-        );
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Erro ao atualizar anotação: $e')),
+          );
+        }
       }
     }
   }
@@ -55,8 +60,16 @@ class _EditarAnotacaoScreenState extends State<EditarAnotacaoScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Editar Anotação'),
-        backgroundColor: Colors.purple,
+        title: Center(
+          child: Image.asset(
+            'assets/images/logointpreto.png',
+            height: 40,
+            fit: BoxFit.contain,
+          ),
+        ),
+        centerTitle: true,
+        backgroundColor: corChumbo,
+        iconTheme: const IconThemeData(color: Colors.white),
       ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
@@ -69,7 +82,9 @@ class _EditarAnotacaoScreenState extends State<EditarAnotacaoScreen> {
                 decoration: const InputDecoration(
                   labelText: 'Título',
                   border: OutlineInputBorder(),
+                  labelStyle: TextStyle(color: Colors.black),
                 ),
+                style: const TextStyle(color: Colors.black),
                 validator: (value) {
                   if (value == null || value.trim().isEmpty) {
                     return 'Por favor, insira um título';
@@ -84,7 +99,9 @@ class _EditarAnotacaoScreenState extends State<EditarAnotacaoScreen> {
                   labelText: 'Conteúdo',
                   border: OutlineInputBorder(),
                   alignLabelWithHint: true,
+                  labelStyle: TextStyle(color: Colors.black),
                 ),
+                style: const TextStyle(color: Colors.black),
                 maxLines: 10,
                 validator: (value) {
                   if (value == null || value.trim().isEmpty) {
@@ -97,7 +114,8 @@ class _EditarAnotacaoScreenState extends State<EditarAnotacaoScreen> {
               ElevatedButton(
                 onPressed: _salvarEdicao,
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.purple,
+                  backgroundColor: Colors.grey[300],
+                  foregroundColor: Colors.black,
                   minimumSize: const Size.fromHeight(50),
                 ),
                 child: const Text('Salvar Alterações'),

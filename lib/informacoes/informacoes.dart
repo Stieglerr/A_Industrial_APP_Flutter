@@ -4,7 +4,14 @@ import 'residencial_info.dart';
 import 'motores_info.dart';
 import 'eletricista_info.dart';
 
-class Informacoes extends StatelessWidget {
+class Informacoes extends StatefulWidget {
+  const Informacoes({super.key});
+
+  @override
+  State<Informacoes> createState() => _InformacoesState();
+}
+
+class _InformacoesState extends State<Informacoes> {
   final Color corChumbo = const Color.fromARGB(255, 55, 52, 53);
 
   final List<Map<String, dynamic>> botoes = [
@@ -27,8 +34,6 @@ class Informacoes extends StatelessWidget {
       'cor': Colors.green,
     },
   ];
-
-  Informacoes({super.key});
 
   PageRouteBuilder _customPageRoute(Widget page) {
     return PageRouteBuilder(
@@ -58,61 +63,14 @@ class Informacoes extends StatelessWidget {
     }
   }
 
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: Image.asset(
-          'assets/images/logointpreto.png',
-          height: 40,
-          fit: BoxFit.contain,
-        ),
-        centerTitle: true,
-        backgroundColor: corChumbo,
-      ),
-      body: Container(
-        padding: const EdgeInsets.all(20),
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [Colors.purple.shade50, Colors.white],
-          ),
-        ),
-        child: Center(
-          child: SingleChildScrollView(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                for (final botao in botoes)
-                  _buildButton(
-                    context,
-                    botao['texto'] as String,
-                    botao['rota'] as Widget,
-                    botao['icone'] as IconData,
-                    botao['cor'] as Color,
-                  ),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildButton(
-    BuildContext context,
-    String text,
-    Widget rota,
-    IconData icon,
-    Color color,
-  ) {
+  Widget _buildButton(String text, Widget rota, IconData icon, Color color) {
     return Container(
       width: double.infinity,
       margin: const EdgeInsets.symmetric(vertical: 10),
       child: ElevatedButton(
         onPressed: () async {
           await _vibrar();
+          if (!mounted) return;
           Navigator.push(context, _customPageRoute(rota));
         },
         style: ElevatedButton.styleFrom(
@@ -122,7 +80,7 @@ class Informacoes extends StatelessWidget {
             borderRadius: BorderRadius.circular(15),
           ),
           elevation: 5,
-          shadowColor: color.withOpacity(0.3),
+          shadowColor: Color.lerp(color, Colors.transparent, 0.7),
           textStyle: const TextStyle(
             fontSize: 18,
             fontWeight: FontWeight.w600,
@@ -143,6 +101,52 @@ class Informacoes extends StatelessWidget {
               ),
             ),
           ],
+        ),
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: Image.asset(
+          'assets/images/logointpreto.png',
+          height: 40,
+          fit: BoxFit.contain,
+        ),
+        centerTitle: true,
+        backgroundColor: corChumbo,
+        iconTheme: const IconThemeData(color: Colors.white),
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () => Navigator.of(context).pop(),
+        ),
+      ),
+      body: Container(
+        padding: const EdgeInsets.all(20),
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [Colors.purple.shade50, Colors.white],
+          ),
+        ),
+        child: Center(
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                for (final botao in botoes)
+                  _buildButton(
+                    botao['texto'] as String,
+                    botao['rota'] as Widget,
+                    botao['icone'] as IconData,
+                    botao['cor'] as Color,
+                  ),
+              ],
+            ),
+          ),
         ),
       ),
     );

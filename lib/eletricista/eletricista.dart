@@ -7,6 +7,24 @@ class Eletricista extends StatelessWidget {
 
   const Eletricista({super.key});
 
+  PageRouteBuilder _customPageRoute(Widget page) {
+    return PageRouteBuilder(
+      transitionDuration: const Duration(milliseconds: 500),
+      pageBuilder: (context, animation, secondaryAnimation) => page,
+      transitionsBuilder: (context, animation, secondaryAnimation, child) {
+        return SlideTransition(
+          position: Tween<Offset>(
+            begin: const Offset(1.0, 0.0),
+            end: Offset.zero,
+          ).animate(
+            CurvedAnimation(parent: animation, curve: Curves.easeInOut),
+          ),
+          child: FadeTransition(opacity: animation, child: child),
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -68,10 +86,7 @@ class Eletricista extends StatelessWidget {
       margin: const EdgeInsets.symmetric(vertical: 10),
       child: ElevatedButton(
         onPressed: () {
-          Navigator.push(
-            context,
-            MaterialPageRoute(builder: (context) => page),
-          );
+          Navigator.push(context, _customPageRoute(page));
         },
         style: ElevatedButton.styleFrom(
           backgroundColor: color,
@@ -80,7 +95,11 @@ class Eletricista extends StatelessWidget {
             borderRadius: BorderRadius.circular(15),
           ),
           elevation: 5,
-          shadowColor: color.withOpacity(0.3),
+          shadowColor: Color.lerp(
+            color,
+            Colors.transparent,
+            0.7,
+          ), // Updated line
           textStyle: const TextStyle(
             fontSize: 18,
             fontWeight: FontWeight.w600,

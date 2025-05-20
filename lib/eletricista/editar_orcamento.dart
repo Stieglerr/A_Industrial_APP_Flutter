@@ -5,14 +5,13 @@ import 'database_helper.dart';
 class EditarOrcamentoScreen extends StatefulWidget {
   final int orcamentoId;
 
-  const EditarOrcamentoScreen({required this.orcamentoId, Key? key})
-    : super(key: key);
+  const EditarOrcamentoScreen({required this.orcamentoId, super.key});
 
   @override
-  _EditarOrcamentoScreenState createState() => _EditarOrcamentoScreenState();
+  EditarOrcamentoScreenState createState() => EditarOrcamentoScreenState();
 }
 
-class _EditarOrcamentoScreenState extends State<EditarOrcamentoScreen> {
+class EditarOrcamentoScreenState extends State<EditarOrcamentoScreen> {
   final Color corChumbo = const Color.fromARGB(255, 55, 52, 53);
   final TextEditingController _clienteController = TextEditingController();
   final TextEditingController _descontoController = TextEditingController(

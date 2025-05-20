@@ -6,10 +6,10 @@ class NovaAnotacaoScreen extends StatefulWidget {
   const NovaAnotacaoScreen({super.key});
 
   @override
-  _NovaAnotacaoScreenState createState() => _NovaAnotacaoScreenState();
+  NovaAnotacaoScreenState createState() => NovaAnotacaoScreenState();
 }
 
-class _NovaAnotacaoScreenState extends State<NovaAnotacaoScreen> {
+class NovaAnotacaoScreenState extends State<NovaAnotacaoScreen> {
   final Color corChumbo = const Color.fromARGB(255, 55, 52, 53);
   final TextEditingController _tituloController = TextEditingController();
   final TextEditingController _conteudoController = TextEditingController();
@@ -22,6 +22,31 @@ class _NovaAnotacaoScreenState extends State<NovaAnotacaoScreen> {
       }
     } catch (e) {
       debugPrint('Erro na vibração: $e');
+    }
+  }
+
+  Future<void> _salvarAnotacao() async {
+    await _vibrar();
+
+    if (_tituloController.text.isEmpty || _conteudoController.text.isEmpty) {
+      return;
+    }
+
+    try {
+      await _dbHelper.insertAnotacao({
+        'titulo': _tituloController.text,
+        'conteudo': _conteudoController.text,
+      });
+
+      if (mounted) {
+        Navigator.pop(context, true);
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Erro ao salvar anotação: $e')));
+      }
     }
   }
 
@@ -78,18 +103,7 @@ class _NovaAnotacaoScreenState extends State<NovaAnotacaoScreen> {
               ),
               const SizedBox(height: 20),
               ElevatedButton(
-                onPressed: () async {
-                  await _vibrar();
-                  if (_tituloController.text.isNotEmpty &&
-                      _conteudoController.text.isNotEmpty) {
-                    await _dbHelper.insertAnotacao({
-                      'titulo': _tituloController.text,
-                      'conteudo': _conteudoController.text,
-                    });
-                    if (!mounted) return;
-                    Navigator.pop(context, true);
-                  }
-                },
+                onPressed: _salvarAnotacao,
                 style: ElevatedButton.styleFrom(
                   minimumSize: const Size(double.infinity, 50),
                   backgroundColor: Colors.grey[300],

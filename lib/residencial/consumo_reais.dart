@@ -4,10 +4,11 @@ class ConsumoReais extends StatefulWidget {
   const ConsumoReais({super.key});
 
   @override
-  _ConsumoReaisState createState() => _ConsumoReaisState();
+  ConsumoReaisState createState() => ConsumoReaisState();
 }
 
-class _ConsumoReaisState extends State<ConsumoReais> {
+class ConsumoReaisState extends State<ConsumoReais> {
+  final Color corChumbo = const Color.fromARGB(255, 55, 52, 53);
   String _watts = '';
   String _horas = '';
   String _precoKwh = '0.630';
@@ -34,39 +35,56 @@ class _ConsumoReaisState extends State<ConsumoReais> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text('Consumo R\$')),
+      appBar: AppBar(
+        title: Center(
+          child: Image.asset(
+            'assets/images/logointpreto.png',
+            height: 40,
+            fit: BoxFit.contain,
+          ),
+        ),
+        centerTitle: true,
+        backgroundColor: corChumbo,
+        iconTheme: const IconThemeData(color: Colors.white),
+      ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Column(
           children: [
             TextField(
-              decoration: InputDecoration(
+              decoration: const InputDecoration(
                 labelText: 'Potência em Watts (W)',
                 border: OutlineInputBorder(),
+                labelStyle: TextStyle(color: Colors.black),
               ),
+              style: const TextStyle(color: Colors.black),
               keyboardType: TextInputType.numberWithOptions(decimal: true),
               onChanged: (value) => setState(() => _watts = value),
             ),
-            SizedBox(height: 20),
+            const SizedBox(height: 20),
             TextField(
-              decoration: InputDecoration(
+              decoration: const InputDecoration(
                 labelText: 'Tempo de uso em horas',
                 border: OutlineInputBorder(),
+                labelStyle: TextStyle(color: Colors.black),
               ),
+              style: const TextStyle(color: Colors.black),
               keyboardType: TextInputType.numberWithOptions(decimal: true),
               onChanged: (value) => setState(() => _horas = value),
             ),
-            SizedBox(height: 20),
+            const SizedBox(height: 20),
             TextField(
-              decoration: InputDecoration(
+              decoration: const InputDecoration(
                 labelText: 'Preço do kWh',
                 border: OutlineInputBorder(),
+                labelStyle: TextStyle(color: Colors.black),
               ),
+              style: const TextStyle(color: Colors.black),
               keyboardType: TextInputType.numberWithOptions(decimal: true),
               onChanged: (value) => setState(() => _precoKwh = value),
               controller: TextEditingController(text: _precoKwh),
             ),
-            SizedBox(height: 30),
+            const SizedBox(height: 30),
             Text(
               _calcularConsumo(),
               style: TextStyle(
@@ -76,12 +94,12 @@ class _ConsumoReaisState extends State<ConsumoReais> {
               ),
               textAlign: TextAlign.center,
             ),
-            SizedBox(height: 15),
+            const SizedBox(height: 15),
             Text(
               '* Valor padrão válido para o Paraná (Dez/2024)',
               style: TextStyle(
                 fontSize: 12,
-                color: Colors.grey,
+                color: Colors.grey[600],
                 fontStyle: FontStyle.italic,
               ),
             ),

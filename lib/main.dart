@@ -1,3 +1,4 @@
+import 'package:app_flutter/aindustrial/aindustrial.dart';
 import 'package:flutter/material.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 import 'package:vibration/vibration.dart';
@@ -39,6 +40,7 @@ class MyApp extends StatelessWidget {
         '/motores': (context) => Motores(),
         '/informacoes': (context) => Informacoes(),
         '/eletricista': (context) => Eletricista(),
+        '/aindustrial': (context) => AIndustrial(),
       },
     );
   }
@@ -52,25 +54,31 @@ class TelaPrincipal extends StatelessWidget {
       'texto': 'Residencial',
       'rota': '/residencial',
       'icone': Icons.home,
-      'cor': Colors.deepPurple,
+      'cor': const Color.fromARGB(255, 66, 165, 245),
     },
     {
       'texto': 'Motores',
       'rota': '/motores',
       'icone': Icons.engineering,
-      'cor': Colors.blue,
+      'cor': const Color.fromARGB(255, 255, 84, 32),
     },
     {
       'texto': 'Eletricista',
       'rota': '/eletricista',
       'icone': Icons.electrical_services,
-      'cor': Colors.green,
+      'cor': const Color.fromRGBO(255, 230, 2, 1),
+    },
+    {
+      'texto': 'A Industrial',
+      'rota': '/aindustrial',
+      'icone': Icons.bolt,
+      'cor': const Color.fromARGB(255, 2, 147, 7),
     },
     {
       'texto': 'Informações',
       'rota': '/informacoes',
       'icone': Icons.info,
-      'cor': Colors.orange,
+      'cor': const Color.fromARGB(255, 21, 101, 192),
     },
   ];
 
@@ -158,7 +166,7 @@ class TelaPrincipal extends StatelessWidget {
       margin: const EdgeInsets.symmetric(vertical: 10),
       child: ElevatedButton(
         onPressed: () async {
-          await _vibrar();
+          _vibrar();
           Navigator.push(context, _customPageRoute(_getScreen(rota)));
         },
         style: ElevatedButton.styleFrom(
@@ -168,7 +176,7 @@ class TelaPrincipal extends StatelessWidget {
             borderRadius: BorderRadius.circular(15),
           ),
           elevation: 5,
-          shadowColor: color.withOpacity(0.3),
+          shadowColor: Color.lerp(color, Colors.transparent, 0.7),
           textStyle: const TextStyle(
             fontSize: 18,
             fontWeight: FontWeight.w600,
@@ -206,6 +214,8 @@ class TelaPrincipal extends StatelessWidget {
         return Informacoes();
       case '/orcamentos':
         return Orcamento();
+      case '/aindustrial':
+        return AIndustrial();
       default:
         return const SizedBox.shrink();
     }

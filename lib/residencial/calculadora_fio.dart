@@ -4,10 +4,11 @@ class CalculadoraFio extends StatefulWidget {
   const CalculadoraFio({super.key});
 
   @override
-  _CalculadoraFioState createState() => _CalculadoraFioState();
+  CalculadoraFioState createState() => CalculadoraFioState();
 }
 
-class _CalculadoraFioState extends State<CalculadoraFio> {
+class CalculadoraFioState extends State<CalculadoraFio> {
+  final Color corChumbo = const Color.fromARGB(255, 55, 52, 53);
   final List<Map<String, dynamic>> _fios = [
     {'bitola': 2.5, 'amperagem': 21},
     {'bitola': 4.0, 'amperagem': 28},
@@ -55,24 +56,40 @@ class _CalculadoraFioState extends State<CalculadoraFio> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text('Calculadora de Fio')),
+      appBar: AppBar(
+        title: Center(
+          child: Image.asset(
+            'assets/images/logointpreto.png',
+            height: 40,
+            fit: BoxFit.contain,
+          ),
+        ),
+        centerTitle: true,
+        backgroundColor: corChumbo,
+        iconTheme: const IconThemeData(color: Colors.white),
+      ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Column(
           children: [
             TextField(
-              decoration: InputDecoration(
+              decoration: const InputDecoration(
                 labelText: 'Amperagem (A)',
                 border: OutlineInputBorder(),
-                suffixIcon: Icon(Icons.electrical_services),
+                suffixIcon: Icon(
+                  Icons.electrical_services,
+                  color: Colors.black,
+                ),
                 hintText: 'Ex: 25.5',
+                labelStyle: TextStyle(color: Colors.black),
               ),
+              style: const TextStyle(color: Colors.black),
               keyboardType: TextInputType.numberWithOptions(decimal: true),
               onChanged: _calcularEmTempoReal,
             ),
-            SizedBox(height: 30),
+            const SizedBox(height: 30),
             AnimatedSwitcher(
-              duration: Duration(milliseconds: 300),
+              duration: const Duration(milliseconds: 300),
               child: Text(
                 _resultado,
                 key: ValueKey(_resultado),
@@ -87,7 +104,7 @@ class _CalculadoraFioState extends State<CalculadoraFio> {
                 textAlign: TextAlign.center,
               ),
             ),
-            SizedBox(height: 20),
+            const SizedBox(height: 20),
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 20),
               child: Text(

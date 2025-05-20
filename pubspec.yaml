@@ -23,6 +23,8 @@ dependencies:
   vibration: ^2.0.0
   shared_preferences: ^2.2.2
   url_launcher: ^6.1.5
+  google_maps_flutter: ^2.2.3
+
 
 
 

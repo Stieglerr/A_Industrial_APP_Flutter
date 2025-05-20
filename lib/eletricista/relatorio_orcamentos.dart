@@ -5,10 +5,10 @@ class RelatorioScreen extends StatefulWidget {
   const RelatorioScreen({super.key});
 
   @override
-  _RelatorioScreenState createState() => _RelatorioScreenState();
+  RelatorioScreenState createState() => RelatorioScreenState();
 }
 
-class _RelatorioScreenState extends State<RelatorioScreen> {
+class RelatorioScreenState extends State<RelatorioScreen> {
   final DatabaseHelper _dbHelper = DatabaseHelper();
 
   @override

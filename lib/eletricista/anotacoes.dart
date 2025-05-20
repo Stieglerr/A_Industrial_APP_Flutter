@@ -1,3 +1,5 @@
+// ignore_for_file: use_build_context_synchronously
+
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:vibration/vibration.dart';
@@ -9,10 +11,10 @@ class Anotacoes extends StatefulWidget {
   const Anotacoes({super.key});
 
   @override
-  _AnotacoesState createState() => _AnotacoesState();
+  AnotacoesState createState() => AnotacoesState();
 }
 
-class _AnotacoesState extends State<Anotacoes> {
+class AnotacoesState extends State<Anotacoes> {
   final Color corChumbo = const Color.fromARGB(255, 55, 52, 53);
   final db.DatabaseHelper _dbHelper = db.DatabaseHelper();
   Future<List<Map<String, dynamic>>>? _anotacoesFuture;
@@ -32,6 +34,7 @@ class _AnotacoesState extends State<Anotacoes> {
   }
 
   Future<void> _carregarAnotacoes() async {
+    if (!mounted) return;
     setState(() {
       _anotacoesFuture = _dbHelper.getAnotacoes();
     });
@@ -49,38 +52,46 @@ class _AnotacoesState extends State<Anotacoes> {
 
   Future<void> _excluirAnotacao(int id) async {
     await _vibrar();
+
+    if (!mounted) return;
+    final currentContext = context;
+
     final confirmar = await showDialog<bool>(
-      context: context,
-      builder:
-          (context) => AlertDialog(
-            title: const Text('Confirmar exclusão'),
-            content: const Text('Deseja realmente excluir esta anotação?'),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(context, false),
-                child: const Text('Cancelar'),
-              ),
-              TextButton(
-                onPressed: () => Navigator.pop(context, true),
-                child: const Text(
-                  'Excluir',
-                  style: TextStyle(color: Colors.red),
-                ),
-              ),
-            ],
-          ),
+      context: currentContext,
+      builder: (BuildContext dialogContext) {
+        return AlertDialog(
+          title: const Text('Confirmar exclusão'),
+          content: const Text('Deseja realmente excluir esta anotação?'),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(dialogContext, false),
+              child: const Text('Cancelar'),
+            ),
+            TextButton(
+              onPressed: () => Navigator.pop(dialogContext, true),
+              child: const Text('Excluir', style: TextStyle(color: Colors.red)),
+            ),
+          ],
+        );
+      },
     );
 
-    if (confirmar == true) {
-      await _dbHelper.deleteAnotacao(id);
+    if (!mounted || confirmar != true) return;
+
+    await _dbHelper.deleteAnotacao(id);
+    if (mounted) {
       await _carregarAnotacoes();
     }
   }
 
   Future<void> _editarAnotacao(Map<String, dynamic> anotacao) async {
     await _vibrar();
+
+    if (!mounted) return;
+    final currentContext = context;
+
     final result = await Navigator.push(
-      context,
+      currentContext,
       PageRouteBuilder(
         transitionDuration: const Duration(milliseconds: 500),
         pageBuilder:
@@ -100,9 +111,8 @@ class _AnotacoesState extends State<Anotacoes> {
       ),
     );
 
-    if (result == true) {
-      await _carregarAnotacoes();
-    }
+    if (!mounted || result != true) return;
+    await _carregarAnotacoes();
   }
 
   @override
@@ -244,8 +254,12 @@ class _AnotacoesState extends State<Anotacoes> {
         backgroundColor: corChumbo,
         onPressed: () async {
           await _vibrar();
+
+          if (!mounted) return;
+          final currentContext = context;
+
           final result = await Navigator.push(
-            context,
+            currentContext,
             PageRouteBuilder(
               transitionDuration: const Duration(milliseconds: 500),
               pageBuilder:
@@ -269,7 +283,9 @@ class _AnotacoesState extends State<Anotacoes> {
               },
             ),
           );
-          if (result == true) await _carregarAnotacoes();
+
+          if (!mounted || result != true) return;
+          await _carregarAnotacoes();
         },
         tooltip: 'Nova anotação',
         child: const Icon(Icons.add, color: Colors.white),

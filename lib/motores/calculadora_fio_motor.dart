@@ -6,10 +6,10 @@ class CalculadoraFioMotor extends StatefulWidget {
   const CalculadoraFioMotor({super.key});
 
   @override
-  _CalculadoraFioMotorState createState() => _CalculadoraFioMotorState();
+  CalculadoraFioMotorState createState() => CalculadoraFioMotorState();
 }
 
-class _CalculadoraFioMotorState extends State<CalculadoraFioMotor> {
+class CalculadoraFioMotorState extends State<CalculadoraFioMotor> {
   final Color corChumbo = const Color.fromARGB(255, 55, 52, 53);
   final List<Map<String, dynamic>> _fios = [
     {'bitola': 2.5, 'amperagem': 21},
@@ -238,7 +238,7 @@ class _CalculadoraFioMotorState extends State<CalculadoraFioMotor> {
           _calcularFiacao();
         });
       },
-      selectedColor: corChumbo.withOpacity(0.2),
+      selectedColor: corChumbo.withAlpha((0.2 * 255).toInt()),
       labelStyle: TextStyle(
         color: _tipoMotor == value ? corChumbo : Colors.grey[700],
         fontWeight: FontWeight.w600,

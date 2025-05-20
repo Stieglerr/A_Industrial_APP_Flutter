@@ -9,15 +9,16 @@ import 'package:pdf/widgets.dart' as pw;
 import 'package:path_provider/path_provider.dart';
 import 'package:open_file/open_file.dart';
 import 'package:share_plus/share_plus.dart';
+import 'package:flutter/services.dart';
 
 class Orcamento extends StatefulWidget {
   const Orcamento({super.key});
 
   @override
-  _OrcamentoState createState() => _OrcamentoState();
+  OrcamentoState createState() => OrcamentoState();
 }
 
-class _OrcamentoState extends State<Orcamento> {
+class OrcamentoState extends State<Orcamento> {
   final DatabaseHelper _dbHelper = DatabaseHelper();
   final Color corChumbo = const Color.fromARGB(255, 55, 52, 53);
   Future<List<Map<String, dynamic>>>? _orcamentosFuture;
@@ -62,7 +63,9 @@ class _OrcamentoState extends State<Orcamento> {
     if (confirmacao == true) {
       try {
         await _dbHelper.deleteOrcamento(id);
+        if (!mounted) return;
         await _carregarOrcamentos();
+        if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text('Orçamento excluído com sucesso'),
@@ -70,6 +73,7 @@ class _OrcamentoState extends State<Orcamento> {
           ),
         );
       } catch (e) {
+        if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Erro ao excluir orçamento: ${e.toString()}'),
@@ -106,7 +110,7 @@ class _OrcamentoState extends State<Orcamento> {
                 text:
                     'Data: ${DateFormat('dd/MM/yyyy HH:mm').format(DateTime.tryParse(orcamento['data']?.toString() ?? '') ?? DateTime.now())}',
               ),
-              pw.Table.fromTextArray(
+              pw.TableHelper.fromTextArray(
                 headers: [
                   'Descrição',
                   'Quantidade',
@@ -167,8 +171,53 @@ class _OrcamentoState extends State<Orcamento> {
     final output = await getTemporaryDirectory();
     final file = File('${output.path}/orcamento_${orcamento['id']}.pdf');
     await file.writeAsBytes(await pdf.save());
-    await OpenFile.open(file.path);
-    await Share.shareXFiles([XFile(file.path)]);
+
+    try {
+      await OpenFile.open(file.path);
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Erro ao abrir PDF: ${e.toString()}'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
+
+    if (mounted) {
+      await _compartilharOrcamento(
+        file,
+        orcamento['cliente']?.toString() ?? 'Cliente',
+      );
+    }
+  }
+
+  Future<void> _compartilharOrcamento(File file, String cliente) async {
+    try {
+      await Share.shareXFiles(
+        [XFile(file.path)],
+        text: 'Orçamento para $cliente',
+        subject: 'Orçamento PDF',
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Erro ao compartilhar: ${e.toString()}'),
+          backgroundColor: Colors.orange,
+          action: SnackBarAction(
+            label: 'Copiar caminho',
+            onPressed: () async {
+              await Clipboard.setData(ClipboardData(text: file.path));
+              if (!mounted) return;
+              ScaffoldMessenger.of(
+                context,
+              ).showSnackBar(const SnackBar(content: Text('Caminho copiado!')));
+            },
+          ),
+        ),
+      );
+    }
   }
 
   @override
@@ -268,11 +317,13 @@ class _OrcamentoState extends State<Orcamento> {
                                     ),
                               ),
                             );
-                            if (result == true) await _carregarOrcamentos();
+                            if (result == true && mounted) {
+                              await _carregarOrcamentos();
+                            }
                           },
                         ),
                         IconButton(
-                          icon: Icon(
+                          icon: const Icon(
                             Icons.picture_as_pdf,
                             color: Colors.purple,
                           ),
@@ -433,7 +484,9 @@ class _OrcamentoState extends State<Orcamento> {
               builder: (context) => const NovoOrcamentoScreen(),
             ),
           );
-          if (result == true) await _carregarOrcamentos();
+          if (result == true && mounted) {
+            await _carregarOrcamentos();
+          }
         },
         child: const Icon(Icons.add, color: Colors.white),
       ),

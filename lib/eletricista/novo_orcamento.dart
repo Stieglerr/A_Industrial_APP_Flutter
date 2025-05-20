@@ -6,10 +6,10 @@ class NovoOrcamentoScreen extends StatefulWidget {
   const NovoOrcamentoScreen({super.key});
 
   @override
-  _NovoOrcamentoScreenState createState() => _NovoOrcamentoScreenState();
+  NovoOrcamentoScreenState createState() => NovoOrcamentoScreenState();
 }
 
-class _NovoOrcamentoScreenState extends State<NovoOrcamentoScreen> {
+class NovoOrcamentoScreenState extends State<NovoOrcamentoScreen> {
   final Color corChumbo = const Color.fromARGB(255, 55, 52, 53);
   final _formKey = GlobalKey<FormState>();
   final TextEditingController _clienteController = TextEditingController();
@@ -137,26 +137,6 @@ class _NovoOrcamentoScreenState extends State<NovoOrcamentoScreen> {
                       (value) => value!.isEmpty ? 'Informe o cliente' : null,
                 ),
                 const SizedBox(height: 20),
-                TextFormField(
-                  controller: _descontoController,
-                  decoration: const InputDecoration(
-                    labelText: 'Desconto (R\$)',
-                    border: OutlineInputBorder(),
-                    prefixText: 'R\$ ',
-                    hintText: '0,00',
-                  ),
-                  keyboardType: TextInputType.numberWithOptions(decimal: true),
-                  onChanged: (value) => _calcularTotal(),
-                  validator: (value) {
-                    if (value == null || value.isEmpty) return null;
-                    final cleanedValue = value.replaceAll(RegExp(r','), '.');
-                    final parsed = double.tryParse(cleanedValue);
-                    if (parsed == null) return 'Valor inválido';
-                    if (parsed < 0) return 'Desconto não pode ser negativo';
-                    return null;
-                  },
-                ),
-                const SizedBox(height: 20),
                 ..._produtos.asMap().entries.map((entry) {
                   final index = entry.key;
                   final produto = entry.value;
@@ -184,7 +164,37 @@ class _NovoOrcamentoScreenState extends State<NovoOrcamentoScreen> {
                   ),
                 ),
                 const SizedBox(height: 20),
-                _buildTotalCard(),
+                // Novo layout para desconto e valor total
+                Column(
+                  children: [
+                    TextFormField(
+                      controller: _descontoController,
+                      decoration: const InputDecoration(
+                        labelText: 'Desconto (R\$)',
+                        border: OutlineInputBorder(),
+                        prefixText: 'R\$ ',
+                        hintText: '0,00',
+                      ),
+                      keyboardType: TextInputType.numberWithOptions(
+                        decimal: true,
+                      ),
+                      onChanged: (value) => _calcularTotal(),
+                      validator: (value) {
+                        if (value == null || value.isEmpty) return null;
+                        final cleanedValue = value.replaceAll(
+                          RegExp(r','),
+                          '.',
+                        );
+                        final parsed = double.tryParse(cleanedValue);
+                        if (parsed == null) return 'Valor inválido';
+                        if (parsed < 0) return 'Desconto não pode ser negativo';
+                        return null;
+                      },
+                    ),
+                    const SizedBox(height: 10),
+                    _buildTotalCard(),
+                  ],
+                ),
                 const SizedBox(height: 20),
                 _buildSaveButton(),
               ],
